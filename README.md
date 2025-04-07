@@ -7,7 +7,7 @@
 
 **Favium is a lightweight package that allows you to create ICO and PNG formatted favicons from a canvas element.**
 
-*"Craft Your Perfect Favicon with Ease"* 🚀
+_"Craft Your Perfect Favicon with Ease"_ 🚀
 
 ---
 
@@ -37,15 +37,15 @@ bun add favium
 ## 🚀 Quick Start
 
 ```typescript
-import { FaviconComposer } from 'favium';
+import { FaviconComposer } from "favium";
 
 // Create a canvas
-const canvas = document.createElement('canvas');
+const canvas = document.createElement("canvas");
 canvas.width = 512;
 canvas.height = 512;
-const ctx = canvas.getContext('2d');
+const ctx = canvas.getContext("2d");
 if (ctx) {
-  ctx.fillStyle = 'blue';
+  ctx.fillStyle = "blue";
   ctx.fillRect(0, 0, 512, 512);
 }
 
@@ -64,10 +64,11 @@ const png64 = favicon.png(64);
 ## 📚 Core Features
 
 ### 🖼️ Favicon Bundle
-```typescript
-import { FaviconComposer } from 'favium';
 
-const canvas = document.createElement('canvas');
+```typescript
+import { FaviconComposer } from "favium";
+
+const canvas = document.createElement("canvas");
 // ... canvas setup ...
 
 const favicon = new FaviconComposer(canvas);
@@ -84,8 +85,9 @@ const bundle = favicon.bundle();
 ```
 
 ### 🌐 ICO Generation
+
 ```typescript
-import { FaviconComposer } from 'favium';
+import { FaviconComposer } from "favium";
 
 const favicon = new FaviconComposer(canvas);
 const ico = favicon.ico([16, 32, 64]); // Custom sizes
@@ -93,8 +95,9 @@ const ico = favicon.ico([16, 32, 64]); // Custom sizes
 ```
 
 ### 🖌️ PNG Generation
+
 ```typescript
-import { FaviconComposer } from 'favium';
+import { FaviconComposer } from "favium";
 
 const favicon = new FaviconComposer(canvas);
 const png32 = favicon.png(32); // Any size
@@ -102,11 +105,31 @@ const png32 = favicon.png(32); // Any size
 ```
 
 ### 📏 Canvas Resizing
+
 ```typescript
-import { FaviconComposer } from 'favium';
+import { FaviconComposer } from "favium";
 
 const favicon = new FaviconComposer(canvas);
 const resized = favicon.resize(64); // Returns HTMLCanvasElement
+```
+
+### 🖼️ Text Icon Generator
+
+```typescript
+import { TextIconGenerator, FaviconComposer } from "favium";
+
+const canvas = document.createElement("canvas");
+const textIcon = new TextIconGenerator(canvas);
+textIcon.generate({
+  text: "A",
+  backgroundColor: "#ff0000",
+  shape: "circle",
+  width: 512,
+  height: 512,
+});
+
+const favicon = new FaviconComposer(canvas);
+const bundle = favicon.bundle();
 ```
 
 ---
@@ -142,4 +165,4 @@ Contributions are welcome! Please submit pull requests or open issues on GitHub.
 
 MIT © Toufiq Hasan Kiron
 
-*"From canvas to favicon, your icon journey starts here."* - Favium Motto 🎨
+_"From canvas to favicon, your icon journey starts here."_ - Favium Motto 🎨

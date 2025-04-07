@@ -1,7 +1,7 @@
 {
   "name": "favium",
   "description": "Favium is a lightweight package that allows you to create ICO and PNG formatted favicons from a canvas element.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
