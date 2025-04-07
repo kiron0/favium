@@ -37,7 +37,7 @@ bun add favium
 ## 🚀 Quick Start
 
 ```typescript
-import { Favium } from 'favium';
+import { FaviconComposer } from 'favium';
 
 // Create a canvas
 const canvas = document.createElement('canvas');
@@ -49,7 +49,7 @@ if (ctx) {
   ctx.fillRect(0, 0, 512, 512);
 }
 
-const favicon = new Favium(canvas);
+const favicon = new FaviconComposer(canvas);
 
 // Generate a full favicon bundle
 const bundle = favicon.bundle();
@@ -65,12 +65,12 @@ const png64 = favicon.png(64);
 
 ### 🖼️ Favicon Bundle
 ```typescript
-import { Favium } from 'favium';
+import { FaviconComposer } from 'favium';
 
 const canvas = document.createElement('canvas');
 // ... canvas setup ...
 
-const favicon = new Favium(canvas);
+const favicon = new FaviconComposer(canvas);
 const bundle = favicon.bundle();
 // Returns {
 //   ico: string,    // Multi-size ICO (16, 32, 48)
@@ -85,27 +85,27 @@ const bundle = favicon.bundle();
 
 ### 🌐 ICO Generation
 ```typescript
-import { Favium } from 'favium';
+import { FaviconComposer } from 'favium';
 
-const favicon = new Favium(canvas);
+const favicon = new FaviconComposer(canvas);
 const ico = favicon.ico([16, 32, 64]); // Custom sizes
 // Returns "data:image/x-icon;base64,..."
 ```
 
 ### 🖌️ PNG Generation
 ```typescript
-import { Favium } from 'favium';
+import { FaviconComposer } from 'favium';
 
-const favicon = new Favium(canvas);
+const favicon = new FaviconComposer(canvas);
 const png32 = favicon.png(32); // Any size
 // Returns "data:image/png;base64,..."
 ```
 
 ### 📏 Canvas Resizing
 ```typescript
-import { Favium } from 'favium';
+import { FaviconComposer } from 'favium';
 
-const favicon = new Favium(canvas);
+const favicon = new FaviconComposer(canvas);
 const resized = favicon.resize(64); // Returns HTMLCanvasElement
 ```
 

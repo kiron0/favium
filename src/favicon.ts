@@ -3,7 +3,7 @@ import Ico from "./ico";
 import Png from "./png";
 import Resize from "./resize";
 
-class Favium {
+class FaviconComposer {
   private readonly canvas: HTMLCanvasElement;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -49,4 +49,4 @@ class Favium {
   }
 }
 
-export default Favium;
+export default FaviconComposer;
