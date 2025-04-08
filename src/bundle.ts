@@ -1,7 +1,7 @@
 import IcoGenerator from "./ico";
 import PngGenerator from "./png";
 
-export interface ImageBundle {
+export interface ImageBundleOptions {
   ico: string;
   png16: string;
   png32: string;
@@ -25,7 +25,7 @@ class Bundle {
    * Generates a bundle of various image formats and sizes
    * @returns Object containing ICO and PNG data URLs
    */
-  public generate(): ImageBundle {
+  public generate(): ImageBundleOptions {
     const icoGenerator = new IcoGenerator(this.canvas);
     const pngGenerator = new PngGenerator(this.canvas);
 
