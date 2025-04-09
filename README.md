@@ -123,7 +123,7 @@ const textIcon = new TextIconGenerator(canvas);
 textIcon.generate({
   text: "A",
   backgroundColor: "#ff0000",
-  shape: "circle",
+  cornerRadius: 15,
   width: 512,
   height: 512,
 });
