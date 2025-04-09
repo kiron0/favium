@@ -1,17 +1,27 @@
 export interface TextIconGeneratorOptions {
+  /** Canvas width in pixels (default: 128) */
   width?: number;
+  /** Canvas height in pixels (default: 128) */
   height?: number;
+  /** Text to display, or null for no text (default: null) */
   text?: string | null;
+  /** Text color (CSS color value, default: "white") */
   fontColor?: string;
+  /** Font family (CSS font-family value, default: "Helvetica") */
   fontFamily?: string;
+  /** Font size in pixels (default: 64) */
   fontSize?: number;
+  /** Font weight (CSS font-weight value, default: "400") */
   fontWeight?: string;
+  /** Font style (CSS font-style value, default: "normal") */
   fontStyle?: string;
-  shape?: "square" | "circle" | "rounded";
+  /** Corner radius in pixels (0 = square, >= min(width, height)/2 = circle, default: 0) */
+  cornerRadius?: number;
+  /** Background color (CSS color value, default: "black") */
   backgroundColor?: string;
 }
 
-class TextIconGenerator {
+export class TextIconGenerator {
   private readonly canvas: HTMLCanvasElement;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -21,7 +31,12 @@ class TextIconGenerator {
     this.canvas = canvas;
   }
 
-  /** Generates an icon on the provided canvas and returns it. */
+  /**
+   * Generates an icon on the provided canvas with customizable corner radius and text.
+   * @param options - Configuration options for the icon
+   * @returns The generated canvas element
+   * @throws {Error} If canvas context is unavailable or options are invalid
+   */
   public generate(options: TextIconGeneratorOptions = {}): HTMLCanvasElement {
     const ctx = this.canvas.getContext("2d");
     if (!ctx) throw new Error("Failed to get 2D context");
@@ -36,7 +51,7 @@ class TextIconGenerator {
       fontSize: 64,
       fontWeight: "400",
       fontStyle: "normal",
-      shape: "square",
+      cornerRadius: 0, // 0 = square by default
       backgroundColor: "black",
     };
 
@@ -50,7 +65,7 @@ class TextIconGenerator {
       fontSize,
       fontWeight,
       fontStyle,
-      shape,
+      cornerRadius,
       backgroundColor,
     } = {
       ...defaults,
@@ -64,8 +79,8 @@ class TextIconGenerator {
       throw new Error("Height must be a positive number");
     if (typeof fontSize !== "number" || fontSize <= 0)
       throw new Error("Font size must be a positive number");
-    if (!["square", "circle", "rounded"].includes(shape))
-      throw new Error('Shape must be "square", "circle", or "rounded"');
+    if (typeof cornerRadius !== "number" || cornerRadius < 0)
+      throw new Error("Corner radius must be a non-negative number");
 
     // Set canvas size for high-DPI displays
     this.canvas.width = width * 2;
@@ -74,32 +89,8 @@ class TextIconGenerator {
     this.canvas.style.height = `${height}px`;
     ctx.scale(2, 2);
 
-    // Draw background
-    ctx.fillStyle = backgroundColor;
-    switch (shape) {
-      case "square":
-        ctx.fillRect(0, 0, width, height);
-        break;
-      case "circle": {
-        const radius = Math.min(width, height) / 2;
-        ctx.beginPath();
-        ctx.arc(width / 2, height / 2, radius, 0, 2 * Math.PI);
-        ctx.fill();
-        break;
-      }
-      case "rounded": {
-        const radius = Math.min(width, height) / 10;
-        ctx.beginPath();
-        ctx.moveTo(radius, 0);
-        ctx.arcTo(width, 0, width, height, radius);
-        ctx.arcTo(width, height, 0, height, radius);
-        ctx.arcTo(0, height, 0, 0, radius);
-        ctx.arcTo(0, 0, width, 0, radius);
-        ctx.closePath();
-        ctx.fill();
-        break;
-      }
-    }
+    // Draw background with flexible corner radius
+    this.drawBackground(ctx, width, height, cornerRadius, backgroundColor);
 
     // Draw text if provided
     if (text) {
@@ -120,7 +111,49 @@ class TextIconGenerator {
     return this.canvas;
   }
 
-  /** Measures text offsets for precise centering. */
+  /**
+   * Draws the background with a specified corner radius.
+   * @param ctx - Canvas 2D rendering context
+   * @param width - Canvas width in logical pixels
+   * @param height - Canvas height in logical pixels
+   * @param cornerRadius - Corner radius in pixels (clamped to fit within bounds)
+   * @param backgroundColor - Background fill color
+   */
+  private drawBackground(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    cornerRadius: number,
+    backgroundColor: string,
+  ): void {
+    ctx.fillStyle = backgroundColor;
+    const maxRadius = Math.min(width, height) / 2;
+    const clampedRadius = Math.min(cornerRadius, maxRadius); // Clamp to avoid exceeding bounds
+
+    if (clampedRadius === 0) {
+      // Square (no rounding)
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      // Rounded shape (circle if radius is max)
+      ctx.beginPath();
+      ctx.moveTo(clampedRadius, 0);
+      ctx.arcTo(width, 0, width, height, clampedRadius);
+      ctx.arcTo(width, height, 0, height, clampedRadius);
+      ctx.arcTo(0, height, 0, 0, clampedRadius);
+      ctx.arcTo(0, 0, width, 0, clampedRadius);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  /**
+   * Measures text offsets for precise centering by analyzing pixel data.
+   * @param ctx - Canvas 2D rendering context with font settings applied
+   * @param text - Text to measure
+   * @param fontSize - Font size in pixels
+   * @returns Vertical and horizontal offsets for centering
+   * @throws {Error} If temporary canvas context is unavailable
+   */
   private measureOffsets(
     ctx: CanvasRenderingContext2D,
     text: string,
@@ -185,7 +218,11 @@ class TextIconGenerator {
     };
   }
 
-  /** Static method to create and generate an icon on a new canvas. */
+  /**
+   * Static method to create and generate an icon on a new canvas.
+   * @param options - Configuration options for the icon
+   * @returns The generated canvas element
+   */
   static generate(options: TextIconGeneratorOptions = {}): HTMLCanvasElement {
     const canvas = document.createElement("canvas");
     const generator = new TextIconGenerator(canvas);
