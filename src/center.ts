@@ -13,18 +13,6 @@ export interface TextIconGeneratorOptions {
 
 class TextIconGenerator {
   private readonly canvas: HTMLCanvasElement;
-  private ctx!: CanvasRenderingContext2D;
-
-  private width!: number;
-  private height!: number;
-  private text!: string | null;
-  private fontColor!: string;
-  private fontFamily!: string;
-  private fontSize!: number;
-  private fontWeight!: string;
-  private fontStyle!: string;
-  private shape!: "square" | "circle" | "rounded";
-  private backgroundColor!: string;
 
   constructor(canvas: HTMLCanvasElement) {
     if (!(canvas instanceof HTMLCanvasElement)) {
@@ -33,15 +21,16 @@ class TextIconGenerator {
     this.canvas = canvas;
   }
 
+  /** Generates an icon on the provided canvas and returns it. */
   public generate(options: TextIconGeneratorOptions = {}): HTMLCanvasElement {
     const ctx = this.canvas.getContext("2d");
     if (!ctx) throw new Error("Failed to get 2D context");
-    this.ctx = ctx;
 
-    const defaults: TextIconGeneratorOptions = {
+    // Default options
+    const defaults: Required<TextIconGeneratorOptions> = {
       width: 128,
       height: 128,
-      text: "C",
+      text: null,
       fontColor: "white",
       fontFamily: "Helvetica",
       fontSize: 64,
@@ -51,176 +40,156 @@ class TextIconGenerator {
       backgroundColor: "black",
     };
 
-    const data = { ...defaults, ...options };
-    this.width = data.width!;
-    this.height = data.height!;
-    this.text = data.text ?? null;
-    this.fontColor = data.fontColor!;
-    this.fontFamily = data.fontFamily!;
-    this.fontSize = data.fontSize!;
-    this.fontWeight = data.fontWeight!;
-    this.fontStyle = data.fontStyle!;
-    this.shape = data.shape!;
-    this.backgroundColor = data.backgroundColor!;
+    // Merge options with defaults
+    const {
+      width,
+      height,
+      text,
+      fontColor,
+      fontFamily,
+      fontSize,
+      fontWeight,
+      fontStyle,
+      shape,
+      backgroundColor,
+    } = {
+      ...defaults,
+      ...options,
+    };
 
-    this.canvas.width = 2 * this.width;
-    this.canvas.height = 2 * this.height;
-    this.canvas.style.width = this.width + "px";
-    this.canvas.style.height = this.height + "px";
-    this.ctx.scale(2, 2);
+    // Input validation
+    if (typeof width !== "number" || width <= 0)
+      throw new Error("Width must be a positive number");
+    if (typeof height !== "number" || height <= 0)
+      throw new Error("Height must be a positive number");
+    if (typeof fontSize !== "number" || fontSize <= 0)
+      throw new Error("Font size must be a positive number");
+    if (!["square", "circle", "rounded"].includes(shape))
+      throw new Error('Shape must be "square", "circle", or "rounded"');
 
-    this.drawBackground();
+    // Set canvas size for high-DPI displays
+    this.canvas.width = width * 2;
+    this.canvas.height = height * 2;
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${height}px`;
+    ctx.scale(2, 2);
 
-    if (this.text) {
-      this.drawText();
+    // Draw background
+    ctx.fillStyle = backgroundColor;
+    switch (shape) {
+      case "square":
+        ctx.fillRect(0, 0, width, height);
+        break;
+      case "circle": {
+        const radius = Math.min(width, height) / 2;
+        ctx.beginPath();
+        ctx.arc(width / 2, height / 2, radius, 0, 2 * Math.PI);
+        ctx.fill();
+        break;
+      }
+      case "rounded": {
+        const radius = Math.min(width, height) / 10;
+        ctx.beginPath();
+        ctx.moveTo(radius, 0);
+        ctx.arcTo(width, 0, width, height, radius);
+        ctx.arcTo(width, height, 0, height, radius);
+        ctx.arcTo(0, height, 0, 0, radius);
+        ctx.arcTo(0, 0, width, 0, radius);
+        ctx.closePath();
+        ctx.fill();
+        break;
+      }
+    }
+
+    // Draw text if provided
+    if (text) {
+      const font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
+      ctx.fillStyle = fontColor;
+      ctx.font = font;
+      ctx.textBaseline = "alphabetic";
+      ctx.textAlign = "center";
+
+      const offsets = this.measureOffsets(ctx, text, fontSize);
+      ctx.fillText(
+        text,
+        width / 2 + offsets.horizontal,
+        height / 2 + offsets.vertical,
+      );
     }
 
     return this.canvas;
   }
 
-  private drawBackground(): void {
-    switch (this.shape) {
-      case "square":
-        this.drawSquare();
-        break;
-      case "circle":
-        this.drawCircle();
-        break;
-      case "rounded":
-        this.drawRounded();
-        break;
-      default:
-        this.drawSquare();
-        break;
-    }
-  }
-
-  private drawSquare(): void {
-    this.ctx.beginPath();
-    this.ctx.rect(0, 0, this.width, this.height);
-    this.ctx.fillStyle = this.backgroundColor;
-    this.ctx.fill();
-  }
-
-  private drawCircle(): void {
-    this.ctx.beginPath();
-    this.ctx.arc(
-      this.width / 2,
-      this.height / 2,
-      this.height / 2,
-      0,
-      2 * Math.PI,
-      false,
-    );
-    this.ctx.fillStyle = this.backgroundColor;
-    this.ctx.fill();
-  }
-
-  private drawRounded(): void {
-    this.ctx.beginPath();
-    const radius = this.height / 10;
-    this.ctx.moveTo(this.width, this.height);
-    this.ctx.arcTo(0, this.height, 0, 0, radius);
-    this.ctx.arcTo(0, 0, this.width, 0, radius);
-    this.ctx.arcTo(this.width, 0, this.width, this.height, radius);
-    this.ctx.arcTo(this.width, this.height, 0, this.height, radius);
-    this.ctx.fillStyle = this.backgroundColor;
-    this.ctx.fill();
-  }
-
-  private drawText(): void {
-    if (!this.text) return;
-
-    this.ctx.fillStyle = this.fontColor;
-    this.ctx.font = this.fontString();
-    this.ctx.textBaseline = "alphabetic";
-    this.ctx.textAlign = "center";
-    const offsets = this.measureOffsets(this.text, this.fontSize);
-    const x = this.width / 2 + offsets.horizontal;
-    const y = this.height / 2 + offsets.vertical;
-    this.ctx.fillText(this.text, x, y);
-  }
-
+  /** Measures text offsets for precise centering. */
   private measureOffsets(
+    ctx: CanvasRenderingContext2D,
     text: string,
     fontSize: number,
   ): { vertical: number; horizontal: number } {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Failed to get 2D context");
-    ctx.font = this.fontString();
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
+    if (!tempCtx) throw new Error("Failed to get 2D context");
 
-    canvas.width = 2 * ctx.measureText(text).width;
-    canvas.height = 2 * fontSize;
+    tempCanvas.width = 2 * ctx.measureText(text).width || 1; // Avoid zero width
+    tempCanvas.height = 2 * fontSize;
+    tempCtx.font = ctx.font;
+    tempCtx.textBaseline = "alphabetic";
+    tempCtx.textAlign = "center";
+    tempCtx.fillStyle = "white";
+    tempCtx.fillText(text, tempCanvas.width / 2, tempCanvas.height / 2);
 
-    if (canvas.width === 0 || canvas.height === 0) {
-      throw new Error(
-        "Canvas dimensions must be greater than 0 before calling getImageData",
-      );
+    const data = tempCtx.getImageData(
+      0,
+      0,
+      tempCanvas.width,
+      tempCanvas.height,
+    ).data;
+
+    let top: number | undefined,
+      bottom: number | undefined,
+      left: number | undefined,
+      right: number | undefined;
+    for (let y = 0; y < tempCanvas.height; y++) {
+      for (let x = 0; x < tempCanvas.width; x++) {
+        if (data[4 * (y * tempCanvas.width + x)] === 255) {
+          top = top === undefined ? y : top;
+          bottom = y;
+          break;
+        }
+      }
     }
-
-    ctx.font = this.fontString();
-    ctx.textBaseline = "alphabetic";
-    ctx.textAlign = "center";
-    ctx.fillStyle = "white";
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-
-    const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-
-    let textTop: number | undefined;
-    let textBottom: number | undefined;
-    for (let y = 0; y <= canvas.height; y++) {
-      for (let x = 0; x <= canvas.width; x++) {
-        const r_index = 4 * (canvas.width * y + x);
-        const r_value = data[r_index];
-
-        if (r_value === 255) {
-          if (!textTop) {
-            textTop = y;
-          }
-          textBottom = y;
+    for (let x = 0; x < tempCanvas.width; x++) {
+      for (let y = 0; y < tempCanvas.height; y++) {
+        if (data[4 * (y * tempCanvas.width + x)] === 255) {
+          left = left === undefined ? x : left;
+          right = x;
           break;
         }
       }
     }
 
-    const canvasHorizontalCenterLine = canvas.height / 2;
-    const textHorizontalCenterLine =
-      textTop !== undefined && textBottom !== undefined
-        ? (textBottom - textTop) / 2 + textTop
-        : canvasHorizontalCenterLine;
-
-    let textLeft: number | undefined;
-    let textRight: number | undefined;
-    for (let x = 0; x <= canvas.width; x++) {
-      for (let y = 0; y <= canvas.height; y++) {
-        const r_index = 4 * (canvas.width * y + x);
-        const r_value = data[r_index];
-
-        if (r_value === 255) {
-          if (!textLeft) {
-            textLeft = x;
-          }
-          textRight = x;
-          break;
-        }
-      }
-    }
-
-    const canvasVerticalCenterLine = canvas.width / 2;
-    const textVerticalCenterLine =
-      textLeft !== undefined && textRight !== undefined
-        ? (textRight - textLeft) / 2 + textLeft
-        : canvasVerticalCenterLine;
+    const canvasCenterY = tempCanvas.height / 2;
+    const canvasCenterX = tempCanvas.width / 2;
+    const textCenterY =
+      top !== undefined && bottom !== undefined
+        ? top + (bottom - top) / 2
+        : canvasCenterY;
+    const textCenterX =
+      left !== undefined && right !== undefined
+        ? left + (right - left) / 2
+        : canvasCenterX;
 
     return {
-      vertical: canvasHorizontalCenterLine - textHorizontalCenterLine,
-      horizontal: canvasVerticalCenterLine - textVerticalCenterLine,
+      vertical: canvasCenterY - textCenterY,
+      horizontal: canvasCenterX - textCenterX,
     };
   }
 
-  private fontString(): string {
-    return `${this.fontStyle} ${this.fontWeight} ${this.fontSize}px ${this.fontFamily}`;
+  /** Static method to create and generate an icon on a new canvas. */
+  static generate(options: TextIconGeneratorOptions = {}): HTMLCanvasElement {
+    const canvas = document.createElement("canvas");
+    const generator = new TextIconGenerator(canvas);
+    return generator.generate(options);
   }
 }
 
