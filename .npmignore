@@ -9,3 +9,6 @@ bun.lock
 
 tsconfig.json
 tsup.config.ts
+
+*.test.ts
+*.md

@@ -1,12 +1,14 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  format: ["cjs", "esm"],
   entry: ["./src/index.ts"],
+  format: ["cjs", "esm"],
   dts: true,
-  shims: false,
-  skipNodeModulesBundle: true,
   clean: true,
-  target: "es2017",
-  outDir: "dist",
+  minify: "terser",
+  target: "es2018",
+  treeshake: true,
+  esbuildOptions(options) {
+    options.drop = ["console", "debugger"];
+  },
 });
