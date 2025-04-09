@@ -1,7 +1,7 @@
 export interface TextIconGeneratorOptions {
   width?: number;
   height?: number;
-  text?: string;
+  text?: string | null;
   fontColor?: string;
   fontFamily?: string;
   fontSize?: number;
@@ -17,7 +17,7 @@ class TextIconGenerator {
 
   private width!: number;
   private height!: number;
-  private text!: string;
+  private text!: string | null;
   private fontColor!: string;
   private fontFamily!: string;
   private fontSize!: number;
@@ -54,7 +54,7 @@ class TextIconGenerator {
     const data = { ...defaults, ...options };
     this.width = data.width!;
     this.height = data.height!;
-    this.text = data.text!;
+    this.text = data.text ?? null;
     this.fontColor = data.fontColor!;
     this.fontFamily = data.fontFamily!;
     this.fontSize = data.fontSize!;
@@ -70,7 +70,11 @@ class TextIconGenerator {
     this.ctx.scale(2, 2);
 
     this.drawBackground();
-    this.drawText();
+
+    if (this.text) {
+      this.drawText();
+    }
+
     return this.canvas;
   }
 
@@ -125,6 +129,8 @@ class TextIconGenerator {
   }
 
   private drawText(): void {
+    if (!this.text) return;
+
     this.ctx.fillStyle = this.fontColor;
     this.ctx.font = this.fontString();
     this.ctx.textBaseline = "alphabetic";
@@ -146,6 +152,12 @@ class TextIconGenerator {
 
     canvas.width = 2 * ctx.measureText(text).width;
     canvas.height = 2 * fontSize;
+
+    if (canvas.width === 0 || canvas.height === 0) {
+      throw new Error(
+        "Canvas dimensions must be greater than 0 before calling getImageData",
+      );
+    }
 
     ctx.font = this.fontString();
     ctx.textBaseline = "alphabetic";
