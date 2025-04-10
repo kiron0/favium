@@ -1,25 +1,4 @@
-export interface TextIconGeneratorOptions {
-  /** Canvas width in pixels (default: 128) */
-  width?: number;
-  /** Canvas height in pixels (default: 128) */
-  height?: number;
-  /** Text to display, or null for no text (default: null) */
-  text?: string | null;
-  /** Text color (CSS color value, default: "white") */
-  fontColor?: string;
-  /** Font family (CSS font-family value, default: "Helvetica") */
-  fontFamily?: string;
-  /** Font size in pixels (default: 64) */
-  fontSize?: number;
-  /** Font weight (CSS font-weight value, default: "400") */
-  fontWeight?: string;
-  /** Font style (CSS font-style value, default: "normal") */
-  fontStyle?: string;
-  /** Corner radius in pixels (0 = square, >= min(width, height)/2 = circle, default: 0) */
-  cornerRadius?: number;
-  /** Background color (CSS color value, default: "black") */
-  backgroundColor?: string;
-}
+import { TextIconGeneratorOptions } from "./interface";
 
 export class TextIconGenerator {
   private readonly canvas: HTMLCanvasElement;
@@ -45,7 +24,7 @@ export class TextIconGenerator {
     const defaults: Required<TextIconGeneratorOptions> = {
       width: 128,
       height: 128,
-      text: null,
+      text: "F",
       fontColor: "white",
       fontFamily: "Helvetica",
       fontSize: 64,

@@ -1,5 +1,6 @@
-import Bundle, { ImageBundleOptions } from "./bundle";
+import Bundle from "./bundle";
 import Ico from "./ico";
+import { ImageBundleOptions } from "./interface";
 import Png from "./png";
 import Resize from "./resize";
 

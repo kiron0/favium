@@ -13,19 +13,15 @@ class Png {
   /**
    * Generates a PNG image of specified size
    * @param size - Size in pixels (width and height)
-   * @param quality - Quality factor between 0 and 1
    * @returns Data URL of PNG image
    */
-  public generate(size: number, quality: number = 0.92): string {
+  public generate(size: number): string {
     if (!Number.isInteger(size) || size <= 0) {
       throw new RangeError("Size must be a positive integer");
     }
-    if (quality < 0 || quality > 1) {
-      throw new RangeError("Quality must be between 0 and 1");
-    }
 
     const resizedCanvas = new Resize(this.canvas).resize(size, size);
-    return resizedCanvas.toDataURL("image/png", quality);
+    return resizedCanvas.toDataURL();
   }
 }
 

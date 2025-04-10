@@ -1,22 +1,6 @@
 import IcoGenerator from "./ico";
+import { ImageBundleOptions } from "./interface";
 import PngGenerator from "./png";
-
-export interface ImageBundleOptions {
-  /** Data URL for the ICO image */
-  ico: string;
-  /** Data URL for the 16x16 PNG image */
-  png16: string;
-  /** Data URL for the 32x32 PNG image */
-  png32: string;
-  /** Data URL for the 150x150 PNG image */
-  png150: string;
-  /** Data URL for the 180x180 PNG image */
-  png180: string;
-  /** Data URL for the 192x192 PNG image */
-  png192: string;
-  /** Data URL for the 512x512 PNG image */
-  png512: string;
-}
 
 class Bundle {
   private readonly canvas: HTMLCanvasElement;

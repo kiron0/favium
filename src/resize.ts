@@ -1,6 +1,10 @@
 class Resize {
   private canvas: HTMLCanvasElement;
-
+  /**
+   * Creates an instance of Resize.
+   * @param canvas - The source canvas element to resize.
+   * @throws {TypeError} If the parameter is not an HTMLCanvasElement.
+   */
   constructor(canvas: HTMLCanvasElement) {
     if (!(canvas instanceof HTMLCanvasElement)) {
       throw new TypeError("Parameter must be an HTMLCanvasElement");
@@ -9,109 +13,44 @@ class Resize {
   }
 
   /**
-   * Resizes the canvas to target dimensions using optimal downsampling.
-   * Uses power-of-2 reductions for better quality before final resize.
-   * @param targetWidth - Desired width in pixels
-   * @param targetHeight - Desired height in pixels
-   * @returns The resized canvas element
-   * @throws {RangeError} If dimensions are invalid
+   * Generates a resized canvas element with specified dimensions.
+   * @param width - The desired width of the canvas.
+   * @param height - The desired height of the canvas.
+   * @returns The resized canvas element.
+   * @throws {RangeError} If width or height is not a positive integer.
    */
-  public resize(targetWidth: number, targetHeight: number): HTMLCanvasElement {
-    // Validate input dimensions
-    if (!Number.isInteger(targetWidth) || !Number.isInteger(targetHeight)) {
+  public resize(width: number, height: number): HTMLCanvasElement {
+    if (!Number.isInteger(width) || !Number.isInteger(height)) {
       throw new RangeError("Width and height must be integers");
     }
-    if (targetWidth <= 0 || targetHeight <= 0) {
+    if (width <= 0 || height <= 0) {
       throw new RangeError("Width and height must be positive");
     }
 
-    // Early return if no resize needed
-    if (
-      this.canvas.width === targetWidth &&
-      this.canvas.height === targetHeight
-    ) {
-      return this.canvas;
+    while (this.canvas.width / 2 >= width) {
+      this._resize(this.canvas.width / 2, this.canvas.height / 2);
     }
 
-    // Use intermediate canvas to avoid modifying original until complete
-    let currentCanvas = this.createIntermediateCanvas(
-      this.canvas.width,
-      this.canvas.height,
-    );
-    this.transferImage(this.canvas, currentCanvas);
-
-    // Progressive downscaling by factors of 2 for better quality
-    while (
-      currentCanvas.width / 2 >= targetWidth &&
-      currentCanvas.height / 2 >= targetHeight
-    ) {
-      const newWidth = Math.floor(currentCanvas.width / 2);
-      const newHeight = Math.floor(currentCanvas.height / 2);
-      currentCanvas = this.downscale(currentCanvas, newWidth, newHeight);
+    if (this.canvas.width > width) {
+      this._resize(width, height);
     }
 
-    // Final resize if needed
-    if (
-      currentCanvas.width > targetWidth ||
-      currentCanvas.height > targetHeight
-    ) {
-      currentCanvas = this.downscale(currentCanvas, targetWidth, targetHeight);
-    }
-
-    this.canvas = currentCanvas;
     return this.canvas;
   }
 
   /**
-   * Creates an intermediate canvas with specified dimensions
-   * @private
+   * Simple resize of a canvas element.
    */
-  private createIntermediateCanvas(
-    width: number,
-    height: number,
-  ): HTMLCanvasElement {
+  private _resize(width: number, height: number): void {
     const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    return canvas;
-  }
-
-  /**
-   * Transfers image data between canvases
-   * @private
-   */
-  private transferImage(
-    source: HTMLCanvasElement,
-    target: HTMLCanvasElement,
-  ): void {
-    const context = target.getContext("2d");
-    if (!context) {
+    const resizedContext = canvas.getContext("2d");
+    if (!resizedContext) {
       throw new Error("Failed to get 2D context");
     }
-    context.imageSmoothingEnabled = true;
-    context.imageSmoothingQuality = "high";
-    context.drawImage(source, 0, 0, target.width, target.height);
-  }
-
-  /**
-   * Performs a single downscale operation with optimal quality settings
-   * @private
-   */
-  private downscale(
-    source: HTMLCanvasElement,
-    width: number,
-    height: number,
-  ): HTMLCanvasElement {
-    const target = this.createIntermediateCanvas(width, height);
-    this.transferImage(source, target);
-    return target;
-  }
-
-  /**
-   * Getter for the current canvas
-   */
-  public getCanvas(): HTMLCanvasElement {
-    return this.canvas;
+    canvas.width = width;
+    canvas.height = height;
+    resizedContext.drawImage(this.canvas, 0, 0, width, height);
+    this.canvas = canvas;
   }
 }
 
