@@ -32,6 +32,7 @@ export class TextIconGenerator {
       fontStyle: "normal",
       cornerRadius: 0, // 0 = square by default
       backgroundColor: "black",
+      pixelRatio: this.getDefaultPixelRatio(),
     };
 
     // Merge options with defaults
@@ -46,6 +47,7 @@ export class TextIconGenerator {
       fontStyle,
       cornerRadius,
       backgroundColor,
+      pixelRatio,
     } = {
       ...defaults,
       ...options,
@@ -60,13 +62,20 @@ export class TextIconGenerator {
       throw new Error("Font size must be a positive number");
     if (typeof cornerRadius !== "number" || cornerRadius < 0)
       throw new Error("Corner radius must be a non-negative number");
+    if (
+      typeof pixelRatio !== "number" ||
+      !Number.isFinite(pixelRatio) ||
+      pixelRatio <= 0
+    ) {
+      throw new Error("Pixel ratio must be a positive number");
+    }
 
     // Set canvas size for high-DPI displays
-    this.canvas.width = width * 2;
-    this.canvas.height = height * 2;
+    this.canvas.width = Math.round(width * pixelRatio);
+    this.canvas.height = Math.round(height * pixelRatio);
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
-    ctx.scale(2, 2);
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
 
     // Draw background with flexible corner radius
     this.drawBackground(ctx, width, height, cornerRadius, backgroundColor);
@@ -206,6 +215,18 @@ export class TextIconGenerator {
     const canvas = document.createElement("canvas");
     const generator = new TextIconGenerator(canvas);
     return generator.generate(options);
+  }
+
+  private getDefaultPixelRatio(): number {
+    if (
+      typeof globalThis.devicePixelRatio === "number" &&
+      Number.isFinite(globalThis.devicePixelRatio) &&
+      globalThis.devicePixelRatio > 0
+    ) {
+      return globalThis.devicePixelRatio;
+    }
+
+    return 1;
   }
 }
 

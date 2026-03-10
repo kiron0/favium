@@ -6,6 +6,10 @@
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -15,29 +19,44 @@
     }
   },
   "license": "MIT",
+  "author": "Toufiq Hasan Kiron",
   "repository": {
+    "type": "git",
     "url": "https://github.com/kiron0/favium"
   },
+  "bugs": {
+    "url": "https://github.com/kiron0/favium/issues"
+  },
+  "homepage": "https://github.com/kiron0/favium#readme",
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
-    "format": "prettier --write \"**/*.{ts,json}\""
+    "format": "prettier --write \"**/*.{ts,json}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:browser": "npm run build && playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "prettier": "^3.8.1",
     "terser": "^5.46.0",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "keywords": [
     "favicon",
     "ico",
     "png",
     "canvas",
+    "browser",
     "favicons",
     "favicons-generator",
     "favicons-creator",
     "favicon-generator",
     "favicon-creator"
-  ]
+  ],
+  "dependencies": {
+    "@clack/prompts": "^1.1.0"
+  }
 }

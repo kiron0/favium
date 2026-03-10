@@ -27,11 +27,17 @@ class Resize {
       throw new RangeError("Width and height must be positive");
     }
 
-    while (this.canvas.width / 2 >= width) {
-      this._resize(this.canvas.width / 2, this.canvas.height / 2);
+    while (
+      this.canvas.width / 2 >= width &&
+      this.canvas.height / 2 >= height
+    ) {
+      this._resize(
+        Math.max(width, Math.floor(this.canvas.width / 2)),
+        Math.max(height, Math.floor(this.canvas.height / 2)),
+      );
     }
 
-    if (this.canvas.width > width) {
+    if (this.canvas.width !== width || this.canvas.height !== height) {
       this._resize(width, height);
     }
 

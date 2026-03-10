@@ -26,27 +26,31 @@ class Ico {
    * @throws {Error} If the canvas context is unavailable.
    */
   public generate(sizes: number[] = [16, 32, 48]): string {
-    if (
-      !sizes.every((size) => Number.isInteger(size) && size > 0 && size <= 256)
-    ) {
+    if (sizes.length === 0) {
+      throw new RangeError("At least one size must be provided");
+    }
+
+    if (!sizes.every((size) => Number.isInteger(size) && size > 0 && size <= 256)) {
       throw new RangeError("Sizes must be positive integers between 1 and 256");
     }
 
-    const masterCanvas = new Resize(this.canvas).resize(128, 128);
     const iconDirHeader = this.createIconDirHeader(sizes.length);
     let iconDirEntries = "";
     let bitmapData = "";
 
     for (let i = 0; i < sizes.length; i++) {
       const size = sizes[i];
-      const resizedCanvas = new Resize(masterCanvas).resize(size, size);
-      const bitmapInfoHeader = this.createBitmapInfoHeader(size);
-      const bitmapImageData = this.createBitmapImageData(resizedCanvas);
-      const bitmapSize = bitmapInfoHeader.length + bitmapImageData.length;
+      const resizedCanvas = new Resize(this.canvas).resize(size, size);
+      const imageData =
+        size >= 256
+          ? this.createPngImageData(resizedCanvas)
+          : this.createBitmapInfoHeader(size) +
+            this.createBitmapImageData(resizedCanvas);
+      const bitmapSize = imageData.length;
       const bitmapOffset = 6 + 16 * sizes.length + bitmapData.length;
 
       iconDirEntries += this.createIconDirEntry(size, bitmapSize, bitmapOffset);
-      bitmapData += bitmapInfoHeader + bitmapImageData;
+      bitmapData += imageData;
     }
 
     const binary = iconDirHeader + iconDirEntries + bitmapData;
@@ -64,7 +68,7 @@ class Ico {
     view.setUint16(0, 0, true); // Reserved
     view.setUint16(2, 1, true); // ICO type
     view.setUint16(4, numImages, true); // Image count
-    return String.fromCharCode(...new Uint8Array(buffer));
+    return this.bytesToBinary(new Uint8Array(buffer));
   }
 
   /**
@@ -81,15 +85,15 @@ class Ico {
   ): string {
     const buffer = new ArrayBuffer(16);
     const view = new DataView(buffer);
-    view.setUint8(0, size); // Width
-    view.setUint8(1, size); // Height
+    view.setUint8(0, size === 256 ? 0 : size); // Width
+    view.setUint8(1, size === 256 ? 0 : size); // Height
     view.setUint8(2, 0); // Color count
     view.setUint8(3, 0); // Reserved
     view.setUint16(4, 1, true); // Color planes
     view.setUint16(6, 32, true); // Bits per pixel
     view.setUint32(8, bitmapSize, true); // Image size
     view.setUint32(12, offset, true); // Offset
-    return String.fromCharCode(...new Uint8Array(buffer));
+    return this.bytesToBinary(new Uint8Array(buffer));
   }
 
   /**
@@ -107,7 +111,7 @@ class Ico {
     view.setUint16(14, 32, true); // Bits per pixel
     view.setUint32(16, 0, true); // Compression
     view.setUint32(20, 0, true); // Image size
-    return String.fromCharCode(...new Uint8Array(buffer));
+    return this.bytesToBinary(new Uint8Array(buffer));
   }
 
   /**
@@ -137,9 +141,38 @@ class Ico {
       }
     }
 
-    const maskSize = (width * height) / 8;
+    const maskRowSize = Math.ceil(width / 32) * 4;
+    const maskSize = maskRowSize * height;
     const bitmapMask = new Uint8Array(maskSize).fill(0); // No transparency
-    return String.fromCharCode(...bgraData, ...bitmapMask);
+    return this.bytesToBinary(bgraData) + this.bytesToBinary(bitmapMask);
+  }
+
+  /**
+   * Creates PNG-compressed image data for large ICO entries.
+   */
+  private createPngImageData(canvas: HTMLCanvasElement): string {
+    const payload = canvas.toDataURL("image/png").split(",")[1];
+
+    if (!payload) {
+      throw new Error("Failed to serialize PNG data");
+    }
+
+    return atob(payload);
+  }
+
+  /**
+   * Converts bytes to a binary string in chunks to avoid spreading large arrays.
+   */
+  private bytesToBinary(bytes: ArrayLike<number>): string {
+    const chunkSize = 0x8000;
+    let binary = "";
+
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = Array.prototype.slice.call(bytes, i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+
+    return binary;
   }
 }
 

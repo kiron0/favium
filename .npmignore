@@ -1,4 +1,6 @@
 /src
+/tests
+/playwright
 /node_modules
 package-lock.json
 bun.lock
@@ -9,6 +11,8 @@ bun.lock
 
 tsconfig.json
 tsup.config.ts
+vitest.config.ts
+playwright.config.ts
 
 *.test.ts
 *.md

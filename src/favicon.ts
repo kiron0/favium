@@ -1,6 +1,10 @@
 import Bundle from "./bundle";
 import Ico from "./ico";
-import { ImageBundleOptions } from "./interface";
+import {
+  BundleGeneratorOptions,
+  GeneratedImageBundle,
+  ImageBundleOptions,
+} from "./interface";
 import Png from "./png";
 import Resize from "./resize";
 
@@ -18,8 +22,12 @@ class FaviconComposer {
    * Generates a complete bundle of favicon images
    * @returns Bundle containing ICO and various PNG sizes
    */
-  public bundle(): ImageBundleOptions {
-    return new Bundle(this.canvas).generate();
+  public bundle(): ImageBundleOptions;
+  public bundle(options: BundleGeneratorOptions): GeneratedImageBundle;
+  public bundle(
+    options?: BundleGeneratorOptions,
+  ): ImageBundleOptions | GeneratedImageBundle {
+    return new Bundle(this.canvas).generate(options ?? {});
   }
 
   /**
