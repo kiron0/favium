@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import IcoGenerator from "../src/ico";
+import IcoGenerator from "../src/generators/ico";
 import { createCanvas, decodeIco } from "./support/fake-canvas";
 
 function readEntry(bytes: Uint8Array, index: number) {

@@ -1,4 +1,4 @@
-import Resize from "./resize";
+import Resize from "../utils/resize";
 
 class Png {
   private readonly canvas: HTMLCanvasElement;

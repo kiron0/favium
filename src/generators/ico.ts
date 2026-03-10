@@ -1,4 +1,4 @@
-import Resize from "./resize";
+import Resize from "../utils/resize";
 
 /**
  * Generates ICO files from a canvas element, supporting multiple sizes.

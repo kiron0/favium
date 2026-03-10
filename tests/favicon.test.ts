@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import BundleGenerator from "../src/bundle";
-import FaviconComposer from "../src/favicon";
-import TextIconGenerator from "../src/center";
+import FaviconComposer from "../src/composer/favicon";
+import BundleGenerator from "../src/generators/bundle";
+import TextIconGenerator from "../src/generators/center";
 import {
   createCanvas,
   getCanvasOperations,

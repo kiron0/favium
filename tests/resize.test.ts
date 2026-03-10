@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import Resize from "../src/resize";
+import Resize from "../src/utils/resize";
 import { createCanvas } from "./support/fake-canvas";
 
 describe("Resize", () => {

@@ -3,7 +3,7 @@ import {
   BundleGeneratorOptions,
   GeneratedImageBundle,
   ImageBundleOptions,
-} from "./interface";
+} from "../types";
 import PngGenerator from "./png";
 
 const DEFAULT_ICO_SIZES = [16, 32, 48];

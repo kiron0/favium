@@ -9,6 +9,7 @@
     "module": "CommonJS",
     "declaration": true,
     "isolatedModules": true,
+    "types": ["node"],
     "noEmit": true,
     "outDir": "dist"
   },

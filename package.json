@@ -1,9 +1,12 @@
 {
   "name": "favium",
-  "description": "Favium is a lightweight package that allows you to create ICO and PNG formatted favicons from a canvas element.",
-  "version": "0.0.6",
+  "description": "Favium generates favicon assets from canvas in the browser and from image files in the terminal.",
+  "version": "0.1.0",
   "source": "src/index.ts",
   "main": "dist/index.js",
+  "bin": {
+    "favium": "./dist/cli.js"
+  },
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "files": [
@@ -31,6 +34,7 @@
   "scripts": {
     "build": "tsup",
     "build:watch": "tsup --watch",
+    "cli": "node dist/cli.js",
     "format": "prettier --write \"**/*.{ts,json}\"",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -38,6 +42,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
+    "@types/node": "^25.4.0",
     "prettier": "^3.8.1",
     "terser": "^5.46.0",
     "tsup": "^8.5.1",
@@ -50,13 +55,17 @@
     "png",
     "canvas",
     "browser",
+    "cli",
     "favicons",
     "favicons-generator",
     "favicons-creator",
     "favicon-generator",
-    "favicon-creator"
+    "favicon-creator",
+    "terminal"
   ],
   "dependencies": {
-    "@clack/prompts": "^1.1.0"
+    "@clack/prompts": "^1.1.0",
+    "png-to-ico": "^3.0.1",
+    "sharp": "^0.34.5"
   }
 }

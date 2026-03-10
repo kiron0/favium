@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import PngGenerator from "../src/png";
+import PngGenerator from "../src/generators/png";
 import { createCanvas, readPngMeta } from "./support/fake-canvas";
 
 describe("PngGenerator", () => {

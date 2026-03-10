@@ -1,6 +1,6 @@
 # Favium
 
-Favium generates favicon assets from an `HTMLCanvasElement` in the browser.
+Favium generates favicon assets from an `HTMLCanvasElement` in the browser and from image files in the terminal.
 
 ## Features
 
@@ -8,13 +8,75 @@ Favium generates favicon assets from an `HTMLCanvasElement` in the browser.
 - Generate PNG favicons at arbitrary sizes
 - Produce a default favicon bundle or a custom size set
 - Create text-based icons with configurable colors, corners, and pixel ratio
-- Ship as a small dependency-free TypeScript package
+- Generate favicon files from local images or external image URLs through an interactive CLI
 
 ## Installation
 
 ```bash
 npm install favium
 ```
+
+## CLI
+
+Favium ships with an interactive terminal workflow:
+
+```bash
+npx favium
+```
+
+The CLI can:
+
+- scan the current directory for valid images
+- accept a custom local file or directory path
+- download and validate an external image URL
+- generate `default`, `web-app`, `apple-android`, or fully custom icon sets
+- choose output directory, base filename, fit mode, overwrite behavior, HTML snippet, and web manifest
+- retry interactive prompts when an entered path, URL, or size list is invalid
+
+By default, Favium writes generated assets into a same-name directory beside the source image.
+
+Example:
+
+```text
+source: ./logo.png
+output: ./logo/
+```
+
+If the source is `./logo.png` and the base name stays `logo`, generated files typically include:
+
+- `logo.ico`
+- `favicon-16x16.png`
+- `favicon-32x32.png`
+- `apple-touch-icon.png`
+- `android-chrome-192x192.png`
+- `android-chrome-512x512.png`
+- `logo.html`
+- `manifest.webmanifest`
+
+Non-interactive example:
+
+```bash
+favium --source ./logo.png --preset web-app --yes
+```
+
+CLI options:
+
+```text
+-h, --help       Show this help message
+-v, --version    Show the current version
+--source         Local file, local directory, or external image URL
+--output         Output directory
+--preset         default | web-app | apple-android | custom
+--recursive      Recursively scan directories for valid images
+-y, --yes        Accept defaults for optional prompts
+```
+
+Preset summary:
+
+- `default`: classic favicon output including `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`, `mstile-150x150.png`, HTML, and `manifest.webmanifest`
+- `web-app`: broader modern set including extra `64`, `128`, and `256` PNG outputs plus `favicon.ico`
+- `apple-android`: focused mobile-oriented set with Apple touch icon, Android icons, and a smaller ICO
+- `custom`: custom PNG sizes and ICO sizes, with filenames generated from the chosen base name
 
 ## Requirements
 
@@ -46,6 +108,19 @@ console.log(bundle.pngs[180]);
 ```
 
 ## API
+
+Top-level exports:
+
+```ts
+import {
+  CanvasResize,
+  FaviconComposer,
+  IcoGenerator,
+  ImageBundleGenerator,
+  PngGenerator,
+  TextIconGenerator,
+} from "favium";
+```
 
 ### `FaviconComposer`
 
@@ -124,6 +199,8 @@ If `pixelRatio` is omitted, Favium uses `window.devicePixelRatio` when available
 - ICO generation uses PNG-compressed payloads for `256x256` entries to improve compatibility with common icon readers.
 - `IcoGenerator.generate()` requires at least one size.
 - `Resize` progressively downsamples large canvases before the final draw for better output quality.
+- The CLI uses Sharp and png-to-ico to generate real favicon files in Node.js.
+- CLI manifest output is written as `manifest.webmanifest`.
 
 ## License
 

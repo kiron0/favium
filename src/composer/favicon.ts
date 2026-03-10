@@ -1,12 +1,12 @@
-import Bundle from "./bundle";
-import Ico from "./ico";
+import Bundle from "../generators/bundle";
+import Ico from "../generators/ico";
 import {
   BundleGeneratorOptions,
   GeneratedImageBundle,
   ImageBundleOptions,
-} from "./interface";
-import Png from "./png";
-import Resize from "./resize";
+} from "../types";
+import Png from "../generators/png";
+import Resize from "../utils/resize";
 
 class FaviconComposer {
   private readonly canvas: HTMLCanvasElement;

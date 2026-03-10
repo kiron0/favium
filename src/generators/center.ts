@@ -1,4 +1,4 @@
-import { TextIconGeneratorOptions } from "./interface";
+import { TextIconGeneratorOptions } from "../types";
 
 export class TextIconGenerator {
   private readonly canvas: HTMLCanvasElement;
