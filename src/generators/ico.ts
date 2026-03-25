@@ -30,7 +30,9 @@ class Ico {
       throw new RangeError("At least one size must be provided");
     }
 
-    if (!sizes.every((size) => Number.isInteger(size) && size > 0 && size <= 256)) {
+    if (
+      !sizes.every((size) => Number.isInteger(size) && size > 0 && size <= 256)
+    ) {
       throw new RangeError("Sizes must be positive integers between 1 and 256");
     }
 

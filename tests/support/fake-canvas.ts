@@ -129,7 +129,8 @@ export function installFakeCanvasDom(): void {
     devicePixelRatio?: number;
   };
 
-  globalObject.HTMLCanvasElement = FakeCanvas as unknown as typeof HTMLCanvasElement;
+  globalObject.HTMLCanvasElement =
+    FakeCanvas as unknown as typeof HTMLCanvasElement;
   globalObject.document = {
     createElement(tagName: string): FakeCanvas {
       if (tagName !== "canvas") {
@@ -148,10 +149,7 @@ export function installFakeCanvasDom(): void {
   }
 }
 
-export function createCanvas(
-  width = 128,
-  height = 128,
-): HTMLCanvasElement {
+export function createCanvas(width = 128, height = 128): HTMLCanvasElement {
   const canvas = new FakeCanvas();
   canvas.width = width;
   canvas.height = height;
@@ -177,6 +175,7 @@ export function getCanvasOperations(canvas: HTMLCanvasElement): string[] {
 }
 
 export function setDevicePixelRatio(value: number): void {
-  (globalThis as typeof globalThis & { devicePixelRatio?: number }).devicePixelRatio =
-    value;
+  (
+    globalThis as typeof globalThis & { devicePixelRatio?: number }
+  ).devicePixelRatio = value;
 }

@@ -17,7 +17,14 @@ describe("FaviconComposer", () => {
     const bundle = new FaviconComposer(canvas).bundle();
 
     expect(bundle.ico.startsWith("data:image/x-icon;base64,")).toBe(true);
-    expect(Object.keys(bundle.pngs)).toEqual(["16", "32", "150", "180", "192", "512"]);
+    expect(Object.keys(bundle.pngs)).toEqual([
+      "16",
+      "32",
+      "150",
+      "180",
+      "192",
+      "512",
+    ]);
     expect(readPngMeta(bundle.png16)).toMatchObject({ width: 16, height: 16 });
     expect(readPngMeta(bundle.png32)).toMatchObject({ width: 32, height: 32 });
     expect(readPngMeta(bundle.png150)).toMatchObject({
@@ -72,7 +79,10 @@ describe("FaviconComposer", () => {
 
     expect(Object.keys(bundle.pngs)).toEqual(["64", "128"]);
     expect(bundle.png16).toBeUndefined();
-    expect(readPngMeta(bundle.pngs[64])).toMatchObject({ width: 64, height: 64 });
+    expect(readPngMeta(bundle.pngs[64])).toMatchObject({
+      width: 64,
+      height: 64,
+    });
     expect(readPngMeta(bundle.pngs[128])).toMatchObject({
       width: 128,
       height: 128,

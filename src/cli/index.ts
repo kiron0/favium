@@ -84,7 +84,10 @@ async function main(): Promise<void> {
     const blueprint = await resolveBlueprint(baseName, preset);
     const htmlSnippet = args.yes
       ? blueprint.htmlSnippet
-      : await promptConfirm("Generate an HTML snippet file?", blueprint.htmlSnippet);
+      : await promptConfirm(
+          "Generate an HTML snippet file?",
+          blueprint.htmlSnippet,
+        );
     const manifest = args.yes
       ? blueprint.manifest
       : await promptConfirm(
@@ -123,7 +126,9 @@ async function main(): Promise<void> {
     progress.stop("Assets generated");
 
     note(
-      artifacts.map((artifact) => `- ${artifact.type}: ${artifact.filePath}`).join("\n"),
+      artifacts
+        .map((artifact) => `- ${artifact.type}: ${artifact.filePath}`)
+        .join("\n"),
       "Written files",
     );
     outro(`Done. ${artifacts.length} file(s) created.`);
@@ -186,8 +191,14 @@ async function resolveSource(args: CliArgs): Promise<LoadedImageSource> {
 
     try {
       if (sourceMode === "current-dir") {
-        const recursive = await promptConfirm("Scan subdirectories too?", false);
-        const files = await collectImagesFromDirectory(process.cwd(), recursive);
+        const recursive = await promptConfirm(
+          "Scan subdirectories too?",
+          false,
+        );
+        const files = await collectImagesFromDirectory(
+          process.cwd(),
+          recursive,
+        );
 
         if (files.length === 0) {
           note(
@@ -217,7 +228,9 @@ async function resolveSource(args: CliArgs): Promise<LoadedImageSource> {
       return promptExternalImageSource();
     } catch (error) {
       note(
-        error instanceof Error ? error.message : "Failed to resolve the selected source.",
+        error instanceof Error
+          ? error.message
+          : "Failed to resolve the selected source.",
         "Source rejected",
       );
     }
@@ -238,7 +251,9 @@ async function resolveExplicitSource(
   if (details.isDirectory()) {
     const files = await collectImagesFromDirectory(absolutePath, recursive);
     if (files.length === 0) {
-      throw new Error(`No valid image files found in directory: ${absolutePath}`);
+      throw new Error(
+        `No valid image files found in directory: ${absolutePath}`,
+      );
     }
 
     const selected = await promptSelect(
@@ -307,7 +322,10 @@ async function resolveBaseName(
   }
 
   return sanitizeBaseName(
-    await promptText("Base filename for generated assets", source.suggestedBaseName),
+    await promptText(
+      "Base filename for generated assets",
+      source.suggestedBaseName,
+    ),
   );
 }
 
@@ -349,10 +367,15 @@ async function resolveBlueprint(baseName: string, preset: CliPreset) {
     );
 
     const pngSizes = parseSizeList(defaultPngSizes);
-    const icoSizes = parseSizeList(defaultIcoSizes).filter((size) => size <= 256);
+    const icoSizes = parseSizeList(defaultIcoSizes).filter(
+      (size) => size <= 256,
+    );
 
     if (pngSizes.length === 0) {
-      note("At least one valid PNG size must be provided.", "Invalid PNG sizes");
+      note(
+        "At least one valid PNG size must be provided.",
+        "Invalid PNG sizes",
+      );
       continue;
     }
 
@@ -380,12 +403,15 @@ async function resolveManifestOptions(
   const themeColor = await promptText("Theme color", "#111827");
   const backgroundColor = await promptText("Background color", "#ffffff");
   const startUrl = await promptText("Start URL", "/");
-  const display = await promptSelect<ManifestOptions["display"]>("Display mode", [
-    { label: "Standalone", value: "standalone" },
-    { label: "Minimal UI", value: "minimal-ui" },
-    { label: "Fullscreen", value: "fullscreen" },
-    { label: "Browser", value: "browser" },
-  ]);
+  const display = await promptSelect<ManifestOptions["display"]>(
+    "Display mode",
+    [
+      { label: "Standalone", value: "standalone" },
+      { label: "Minimal UI", value: "minimal-ui" },
+      { label: "Fullscreen", value: "fullscreen" },
+      { label: "Browser", value: "browser" },
+    ],
+  );
 
   return {
     name,
@@ -410,7 +436,9 @@ async function promptExternalImageSource(): Promise<LoadedImageSource> {
       return await loadImageFromUrl(url);
     } catch (error) {
       note(
-        error instanceof Error ? error.message : "Failed to load the image URL.",
+        error instanceof Error
+          ? error.message
+          : "Failed to load the image URL.",
         "URL rejected",
       );
     }
@@ -419,20 +447,28 @@ async function promptExternalImageSource(): Promise<LoadedImageSource> {
 
 async function promptLocalImageSource(): Promise<LoadedImageSource> {
   while (true) {
-    const inputPath = await promptText("Enter a file or directory path", process.cwd());
+    const inputPath = await promptText(
+      "Enter a file or directory path",
+      process.cwd(),
+    );
 
     try {
       return await resolveExplicitSource(inputPath, true);
     } catch (error) {
       note(
-        error instanceof Error ? error.message : "Failed to resolve the local image path.",
+        error instanceof Error
+          ? error.message
+          : "Failed to resolve the local image path.",
         "Path rejected",
       );
     }
   }
 }
 
-async function promptText(message: string, initialValue: string): Promise<string> {
+async function promptText(
+  message: string,
+  initialValue: string,
+): Promise<string> {
   return unwrapPrompt(
     await text({
       message,

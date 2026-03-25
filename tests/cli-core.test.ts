@@ -52,11 +52,12 @@ describe("cli-core", () => {
     const shallowFiles = await collectImagesFromDirectory(directory, false);
     const recursiveFiles = await collectImagesFromDirectory(directory, true);
 
-    expect(shallowFiles.map((filePath) => filePath.split("/").pop())).toEqual(["root.png"]);
-    expect(recursiveFiles.map((filePath) => filePath.split("/").pop())).toEqual([
-      "deep.webp",
+    expect(shallowFiles.map((filePath) => filePath.split("/").pop())).toEqual([
       "root.png",
     ]);
+    expect(recursiveFiles.map((filePath) => filePath.split("/").pop())).toEqual(
+      ["deep.webp", "root.png"],
+    );
   });
 
   it("parses, deduplicates, and sorts size input", () => {
@@ -114,7 +115,11 @@ describe("cli-core", () => {
       icoSizes: [16, 32, 48],
       pngOutputs: [
         { size: 32, filename: "favicon-32x32.png", rel: "icon" },
-        { size: 180, filename: "apple-touch-icon.png", rel: "apple-touch-icon" },
+        {
+          size: 180,
+          filename: "apple-touch-icon.png",
+          rel: "apple-touch-icon",
+        },
         { size: 192, filename: "android-chrome-192x192.png", manifest: true },
       ],
       htmlSnippet: true,
@@ -189,7 +194,9 @@ describe("cli-core", () => {
       background: "#ffffff",
       overwrite: true,
       icoSizes: [16, 32],
-      pngOutputs: [{ size: 192, filename: "android-chrome-192x192.png", manifest: true }],
+      pngOutputs: [
+        { size: 192, filename: "android-chrome-192x192.png", manifest: true },
+      ],
       htmlSnippet: true,
       manifest: true,
       manifestFilename: "manifest.webmanifest",
@@ -207,7 +214,9 @@ describe("cli-core", () => {
     expect(formatBytes(2048)).toBe("2.0 KB");
     expect(formatBytes(1024 * 1024 * 3)).toBe("3.0 MB");
     expect(summarizePlan(source, plan)).toContain("Fit: contain on #ffffff");
-    expect(summarizePlan(source, plan)).toContain("Image: 512x512 PNG (2.0 KB)");
+    expect(summarizePlan(source, plan)).toContain(
+      "Image: 512x512 PNG (2.0 KB)",
+    );
   });
 
   it("loads local images and derives a sanitized base name", async () => {
@@ -233,7 +242,9 @@ describe("cli-core", () => {
       }),
     );
 
-    const source = await loadImageFromUrl("https://example.com/assets/Logo%20Mark.png");
+    const source = await loadImageFromUrl(
+      "https://example.com/assets/Logo%20Mark.png",
+    );
 
     expect(source.kind).toBe("external-url");
     expect(source.width).toBe(24);
@@ -262,9 +273,9 @@ describe("cli-core", () => {
       }),
     );
 
-    await expect(loadImageFromUrl("https://example.com/missing.png")).rejects.toThrow(
-      "Failed to fetch image: 404 Not Found",
-    );
+    await expect(
+      loadImageFromUrl("https://example.com/missing.png"),
+    ).rejects.toThrow("Failed to fetch image: 404 Not Found");
   });
 
   it("generates favicon assets end-to-end", async () => {
@@ -320,7 +331,9 @@ describe("cli-core", () => {
     const artifacts = await generateArtifacts(source, plan);
 
     expect(artifacts).toHaveLength(5);
-    expect(await readFile(join(outputDir, "favicon.ico"))).toBeInstanceOf(Buffer);
+    expect(await readFile(join(outputDir, "favicon.ico"))).toBeInstanceOf(
+      Buffer,
+    );
     expect(await readFile(join(outputDir, "favicon.html"), "utf8")).toContain(
       "manifest.webmanifest",
     );
@@ -394,7 +407,10 @@ async function createImageBuffer(
   return image.png().toBuffer();
 }
 
-async function createNestedImage(directory: string, filename: string): Promise<void> {
+async function createNestedImage(
+  directory: string,
+  filename: string,
+): Promise<void> {
   await mkdir(directory, { recursive: true });
   await createImage(join(directory, filename), "webp");
 }

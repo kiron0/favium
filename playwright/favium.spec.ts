@@ -11,15 +11,16 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => typeof window.favium !== "undefined");
 });
 
-test("generates browser-valid PNGs and configurable bundles", async ({ page }) => {
+test("generates browser-valid PNGs and configurable bundles", async ({
+  page,
+}) => {
   const result = await page.evaluate(async () => {
     const { FaviconComposer } = window.favium as {
       FaviconComposer: new (canvas: HTMLCanvasElement) => {
         png: (size: number) => string;
-        bundle: (options: {
-          icoSizes: number[];
-          pngSizes: number[];
-        }) => { pngs: Record<number, string> };
+        bundle: (options: { icoSizes: number[]; pngSizes: number[] }) => {
+          pngs: Record<number, string>;
+        };
       };
     };
 

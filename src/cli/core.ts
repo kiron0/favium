@@ -119,7 +119,9 @@ export function isExternalImageUrl(value: string): boolean {
   }
 }
 
-export async function loadImageFromPath(filePath: string): Promise<LoadedImageSource> {
+export async function loadImageFromPath(
+  filePath: string,
+): Promise<LoadedImageSource> {
   const absolutePath = resolve(filePath);
   const buffer = await readFile(absolutePath);
   const metadata = await sharp(buffer, { animated: true }).metadata();
@@ -137,21 +139,29 @@ export async function loadImageFromPath(filePath: string): Promise<LoadedImageSo
     height: metadata.height,
     format: metadata.format,
     sizeBytes: buffer.byteLength,
-    suggestedBaseName: sanitizeBaseName(basename(absolutePath, extname(absolutePath))),
+    suggestedBaseName: sanitizeBaseName(
+      basename(absolutePath, extname(absolutePath)),
+    ),
     directory: dirname(absolutePath),
   };
 }
 
-export async function loadImageFromUrl(url: string): Promise<LoadedImageSource> {
+export async function loadImageFromUrl(
+  url: string,
+): Promise<LoadedImageSource> {
   const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch image: ${response.status} ${response.statusText}`,
+    );
   }
 
   const contentType = response.headers.get("content-type");
   if (contentType && !contentType.startsWith("image/")) {
-    throw new Error(`URL did not return an image. Received content-type: ${contentType}`);
+    throw new Error(
+      `URL did not return an image. Received content-type: ${contentType}`,
+    );
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
@@ -203,7 +213,8 @@ export function getPresetBlueprint(
       pngOutputs: pngSizes.map((size) => ({
         size,
         filename: `${baseName}-${size}x${size}.png`,
-        rel: size === 180 ? "apple-touch-icon" : size <= 64 ? "icon" : undefined,
+        rel:
+          size === 180 ? "apple-touch-icon" : size <= 64 ? "icon" : undefined,
         manifest: size === 192 || size === 512,
       })),
       htmlSnippet: true,
@@ -216,7 +227,11 @@ export function getPresetBlueprint(
     return {
       icoSizes: [16, 32, 48],
       pngOutputs: [
-        { size: 180, filename: "apple-touch-icon.png", rel: "apple-touch-icon" },
+        {
+          size: 180,
+          filename: "apple-touch-icon.png",
+          rel: "apple-touch-icon",
+        },
         { size: 192, filename: "android-chrome-192x192.png", manifest: true },
         { size: 512, filename: "android-chrome-512x512.png", manifest: true },
       ],
@@ -234,7 +249,11 @@ export function getPresetBlueprint(
         { size: 32, filename: "favicon-32x32.png", rel: "icon" },
         { size: 64, filename: `${baseName}-64x64.png` },
         { size: 128, filename: `${baseName}-128x128.png` },
-        { size: 180, filename: "apple-touch-icon.png", rel: "apple-touch-icon" },
+        {
+          size: 180,
+          filename: "apple-touch-icon.png",
+          rel: "apple-touch-icon",
+        },
         { size: 192, filename: "android-chrome-192x192.png", manifest: true },
         { size: 256, filename: "android-chrome-256x256.png" },
         { size: 512, filename: "android-chrome-512x512.png", manifest: true },
@@ -291,7 +310,9 @@ export function renderHtmlSnippet(plan: CliGenerationPlan): string {
 
 export function renderManifest(plan: CliGenerationPlan): string {
   if (!plan.manifestOptions) {
-    throw new Error("Manifest options are required when manifest generation is enabled");
+    throw new Error(
+      "Manifest options are required when manifest generation is enabled",
+    );
   }
 
   const icons = plan.pngOutputs
@@ -328,7 +349,10 @@ export function getSuggestedOutputDirectory(source: LoadedImageSource): string {
   return resolve(source.directory ?? process.cwd(), source.suggestedBaseName);
 }
 
-export function summarizePlan(source: LoadedImageSource, plan: CliGenerationPlan): string {
+export function summarizePlan(
+  source: LoadedImageSource,
+  plan: CliGenerationPlan,
+): string {
   return [
     `Source: ${source.label}`,
     `Image: ${source.width}x${source.height} ${source.format.toUpperCase()} (${formatBytes(source.sizeBytes)})`,
@@ -374,13 +398,23 @@ export async function generateArtifacts(
 
   if (plan.htmlSnippet) {
     const htmlPath = join(plan.outputDir, `${plan.baseName}.html`);
-    await writeFileSafely(htmlPath, renderHtmlSnippet(plan), plan.overwrite, "utf8");
+    await writeFileSafely(
+      htmlPath,
+      renderHtmlSnippet(plan),
+      plan.overwrite,
+      "utf8",
+    );
     artifacts.push({ type: "html", filePath: htmlPath });
   }
 
   if (plan.manifest) {
     const manifestPath = join(plan.outputDir, plan.manifestFilename);
-    await writeFileSafely(manifestPath, renderManifest(plan), plan.overwrite, "utf8");
+    await writeFileSafely(
+      manifestPath,
+      renderManifest(plan),
+      plan.overwrite,
+      "utf8",
+    );
     artifacts.push({ type: "manifest", filePath: manifestPath });
   }
 

@@ -45,5 +45,4 @@ describe("public API", () => {
     );
     expect(new CanvasResize(canvas).resize(24, 24).width).toBe(24);
   });
-
 });
