@@ -222,10 +222,10 @@ async function resolveSource(args: CliArgs): Promise<LoadedImageSource> {
       }
 
       if (sourceMode === "custom-path") {
-        return promptLocalImageSource();
+        return await promptLocalImageSource();
       }
 
-      return promptExternalImageSource();
+      return await promptExternalImageSource();
     } catch (error) {
       note(
         error instanceof Error
@@ -491,7 +491,7 @@ async function promptConfirm(
 
 async function promptSelect<T extends string>(
   message: string,
-  options: Array<Option<T>>,
+  options: Option<T>[],
 ): Promise<T> {
   return unwrapPrompt(
     await select({

@@ -2,6 +2,7 @@
   "compilerOptions": {
     "strict": true,
     "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
     "strictNullChecks": true,
     "target": "ES2022",

@@ -15,7 +15,9 @@ const contentTypes = {
 
 createServer(async (request, response) => {
   const requestPath =
-    request.url === "/" ? "/playwright/fixtures/index.html" : request.url ?? "/";
+    request.url === "/"
+      ? "/playwright/fixtures/index.html"
+      : (request.url ?? "/");
   const safePath = normalize(requestPath).replace(/^(\.\.[/\\])+/, "");
   const filePath = join(root, safePath);
 

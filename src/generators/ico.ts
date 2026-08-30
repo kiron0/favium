@@ -40,8 +40,7 @@ class Ico {
     let iconDirEntries = "";
     let bitmapData = "";
 
-    for (let i = 0; i < sizes.length; i++) {
-      const size = sizes[i];
+    for (const size of sizes) {
       const resizedCanvas = new Resize(this.canvas).resize(size, size);
       const imageData =
         size >= 256
@@ -136,10 +135,10 @@ class Ico {
       for (let x = 0; x < width; x++) {
         const src = (y * width + x) * 4;
         const dest = ((height - 1 - y) * width + x) * 4;
-        bgraData[dest] = rgbaData[src + 2]; // B
-        bgraData[dest + 1] = rgbaData[src + 1]; // G
-        bgraData[dest + 2] = rgbaData[src]; // R
-        bgraData[dest + 3] = rgbaData[src + 3]; // A
+        bgraData[dest] = rgbaData[src + 2] ?? 0; // B
+        bgraData[dest + 1] = rgbaData[src + 1] ?? 0; // G
+        bgraData[dest + 2] = rgbaData[src] ?? 0; // R
+        bgraData[dest + 3] = rgbaData[src + 3] ?? 0; // A
       }
     }
 
@@ -170,7 +169,11 @@ class Ico {
     let binary = "";
 
     for (let i = 0; i < bytes.length; i += chunkSize) {
-      const chunk = Array.prototype.slice.call(bytes, i, i + chunkSize);
+      const chunk: number[] = [];
+      const end = Math.min(i + chunkSize, bytes.length);
+      for (let index = i; index < end; index++) {
+        chunk.push(bytes[index] ?? 0);
+      }
       binary += String.fromCharCode(...chunk);
     }
 

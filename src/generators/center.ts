@@ -173,7 +173,7 @@ export class TextIconGenerator {
     for (let y = 0; y < tempCanvas.height; y++) {
       for (let x = 0; x < tempCanvas.width; x++) {
         if (data[4 * (y * tempCanvas.width + x)] === 255) {
-          top = top === undefined ? y : top;
+          top ??= y;
           bottom = y;
           break;
         }
@@ -182,7 +182,7 @@ export class TextIconGenerator {
     for (let x = 0; x < tempCanvas.width; x++) {
       for (let y = 0; y < tempCanvas.height; y++) {
         if (data[4 * (y * tempCanvas.width + x)] === 255) {
-          left = left === undefined ? x : left;
+          left ??= x;
           right = x;
           break;
         }

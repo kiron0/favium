@@ -1,7 +1,7 @@
-type DrawImageSource = {
+interface DrawImageSource {
   width: number;
   height: number;
-};
+}
 
 class FakeCanvasRenderingContext2D {
   public fillStyle = "";
@@ -162,7 +162,11 @@ export function readPngMeta(dataUrl: string): {
   type: string;
 } {
   const payload = dataUrl.split(",")[1] ?? "";
-  return JSON.parse(Buffer.from(payload, "base64").toString("utf8"));
+  return JSON.parse(Buffer.from(payload, "base64").toString("utf8")) as {
+    width: number;
+    height: number;
+    type: string;
+  };
 }
 
 export function decodeIco(dataUrl: string): Uint8Array {

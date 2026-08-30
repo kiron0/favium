@@ -8,7 +8,7 @@ import PngGenerator from "./png";
 
 const DEFAULT_ICO_SIZES = [16, 32, 48];
 const DEFAULT_PNG_SIZES = [16, 32, 150, 180, 192, 512];
-const PNG_SIZE_KEYS: Record<number, keyof ImageBundleOptions> = {
+const PNG_SIZE_KEYS: Partial<Record<number, keyof ImageBundleOptions>> = {
   16: "png16",
   32: "png32",
   150: "png150",

@@ -126,7 +126,7 @@ export async function loadImageFromPath(
   const buffer = await readFile(absolutePath);
   const metadata = await sharp(buffer, { animated: true }).metadata();
 
-  if (!metadata.width || !metadata.height || !metadata.format) {
+  if (!metadata.width || !metadata.height) {
     throw new Error(`Unsupported image file: ${absolutePath}`);
   }
 
@@ -167,7 +167,7 @@ export async function loadImageFromUrl(
   const buffer = Buffer.from(await response.arrayBuffer());
   const metadata = await sharp(buffer, { animated: true }).metadata();
 
-  if (!metadata.width || !metadata.height || !metadata.format) {
+  if (!metadata.width || !metadata.height) {
     throw new Error(`Unsupported image payload from ${url}`);
   }
 
