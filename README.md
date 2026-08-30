@@ -6,6 +6,7 @@ Favium generates favicon assets from an `HTMLCanvasElement` in the browser and f
 
 - Generate multi-size ICO files from a canvas
 - Generate PNG favicons at arbitrary sizes
+- Accept WebP source images and convert them into PNG/ICO favicon bundles
 - Produce a default favicon bundle or a custom size set
 - Create text-based icons with configurable colors, corners, and pixel ratio
 - Generate favicon files from local images or external image URLs through an interactive CLI
@@ -57,6 +58,12 @@ Non-interactive example:
 
 ```bash
 favium --source ./logo.png --preset web-app --yes
+```
+
+WebP input example:
+
+```bash
+favium --source ./logo.webp --preset web-app --yes
 ```
 
 CLI options:

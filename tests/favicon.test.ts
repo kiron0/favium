@@ -110,6 +110,19 @@ describe("BundleGenerator", () => {
 });
 
 describe("TextIconGenerator", () => {
+  it.each([
+    [{ width: 0 }, "Width must be a positive number"],
+    [{ height: -1 }, "Height must be a positive number"],
+    [{ fontSize: 0 }, "Font size must be a positive number"],
+    [{ cornerRadius: -1 }, "Corner radius must be a non-negative number"],
+    [{ pixelRatio: 0 }, "Pixel ratio must be a positive number"],
+    [{ pixelRatio: Number.NaN }, "Pixel ratio must be a positive number"],
+  ])("rejects invalid options %#", (options, message) => {
+    expect(() =>
+      new TextIconGenerator(createCanvas()).generate(options),
+    ).toThrow(message);
+  });
+
   it("draws background and text on the provided canvas", () => {
     const canvas = createCanvas();
 

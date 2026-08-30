@@ -21,7 +21,7 @@ class Png {
     }
 
     const resizedCanvas = new Resize(this.canvas).resize(size, size);
-    return resizedCanvas.toDataURL();
+    return resizedCanvas.toDataURL("image/png");
   }
 }
 

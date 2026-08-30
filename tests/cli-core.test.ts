@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -14,6 +14,7 @@ import {
   isSupportedImagePath,
   loadImageFromPath,
   loadImageFromUrl,
+  MAX_SOURCE_BYTES,
   parseSizeList,
   renderHtmlSnippet,
   renderManifest,
@@ -233,6 +234,25 @@ describe("cli-core", () => {
     expect(source.directory).toBe(directory);
   });
 
+  it("loads WebP sources", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "favium-webp-source-"));
+    const filePath = join(directory, "logo.webp");
+    await createImage(filePath, "webp");
+
+    const source = await loadImageFromPath(filePath);
+
+    expect(source.format).toBe("webp");
+    expect(source.width).toBe(16);
+  });
+
+  it("rejects oversized local inputs before reading", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "favium-large-source-"));
+    const filePath = join(directory, "large.png");
+    await writeFile(filePath, Buffer.alloc(MAX_SOURCE_BYTES + 1));
+
+    await expect(loadImageFromPath(filePath)).rejects.toThrow("25.0 MB limit");
+  });
+
   it("loads external images from URLs", async () => {
     const imageBuffer = await createImageBuffer("png", 24);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
@@ -265,6 +285,19 @@ describe("cli-core", () => {
     );
   });
 
+  it("rejects spoofed image content types", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("not an image", {
+        status: 200,
+        headers: { "content-type": "image/png" },
+      }),
+    );
+
+    await expect(
+      loadImageFromUrl("https://example.com/fake.png"),
+    ).rejects.toThrow();
+  });
+
   it("rejects URL sources when the fetch fails", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response("missing", {
@@ -278,6 +311,41 @@ describe("cli-core", () => {
     ).rejects.toThrow("Failed to fetch image: 404 Not Found");
   });
 
+  it("rejects oversized remote inputs from headers", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("x", {
+        status: 200,
+        headers: {
+          "content-type": "image/png",
+          "content-length": String(MAX_SOURCE_BYTES + 1),
+        },
+      }),
+    );
+
+    await expect(
+      loadImageFromUrl("https://example.com/large.png"),
+    ).rejects.toThrow("25.0 MB limit");
+  });
+
+  it("rejects oversized streamed inputs without a content-length", async () => {
+    const oversized = new Uint8Array(MAX_SOURCE_BYTES + 1);
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(oversized);
+            controller.close();
+          },
+        }),
+        { headers: { "content-type": "image/png" } },
+      ),
+    );
+
+    await expect(
+      loadImageFromUrl("https://example.com/stream.png"),
+    ).rejects.toThrow("25.0 MB limit");
+  });
+
   it("generates favicon assets end-to-end", async () => {
     const outputDir = await mkdtemp(join(tmpdir(), "favium-out-"));
     const sourceBuffer = await sharp({
@@ -288,17 +356,17 @@ describe("cli-core", () => {
         background: "#2563eb",
       },
     })
-      .png()
+      .webp()
       .toBuffer();
 
     const source: LoadedImageSource = {
       kind: "custom-path",
-      label: "logo.png",
-      origin: "/tmp/logo.png",
+      label: "logo.webp",
+      origin: "/tmp/logo.webp",
       buffer: sourceBuffer,
       width: 256,
       height: 256,
-      format: "png",
+      format: "webp",
       sizeBytes: sourceBuffer.byteLength,
       suggestedBaseName: "logo",
       directory: outputDir,
@@ -337,6 +405,9 @@ describe("cli-core", () => {
     expect(await readFile(join(outputDir, "favicon.html"), "utf8")).toContain(
       "manifest.webmanifest",
     );
+    expect(
+      await sharp(join(outputDir, "favicon-32x32.png")).metadata(),
+    ).toMatchObject({ format: "png", width: 32, height: 32 });
   });
 
   it("refuses to overwrite existing files when overwrite is disabled", async () => {
@@ -372,6 +443,184 @@ describe("cli-core", () => {
     await expect(generateArtifacts(source, plan)).rejects.toThrow(
       `Refusing to overwrite existing file: ${join(outputDir, "favicon-32x32.png")}`,
     );
+  });
+
+  it("replaces output symlinks without modifying their targets", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "favium-symlink-"));
+    const outputDir = join(directory, "output");
+    await mkdir(outputDir);
+    const targetPath = join(directory, "sensitive.txt");
+    const outputPath = join(outputDir, "icon.png");
+    await writeFile(targetPath, "do not overwrite");
+    await symlink(targetPath, outputPath);
+    const sourceBuffer = await createImageBuffer("png");
+
+    await generateArtifacts(
+      {
+        kind: "custom-path",
+        label: "logo.png",
+        origin: "/tmp/logo.png",
+        buffer: sourceBuffer,
+        width: 16,
+        height: 16,
+        format: "png",
+        sizeBytes: sourceBuffer.byteLength,
+        suggestedBaseName: "logo",
+      },
+      {
+        baseName: "favicon",
+        outputDir,
+        fit: "cover",
+        background: "#fff",
+        overwrite: true,
+        icoSizes: [],
+        pngOutputs: [{ size: 16, filename: "icon.png" }],
+        htmlSnippet: false,
+        manifest: false,
+        manifestFilename: "manifest.webmanifest",
+      },
+    );
+
+    expect(await readFile(targetPath, "utf8")).toBe("do not overwrite");
+    expect((await sharp(outputPath).metadata()).format).toBe("png");
+  });
+
+  it.each(["../escape.png", "nested/escape.png", "nested\\escape.png"])(
+    "rejects unsafe output filename %s",
+    async (filename) => {
+      const outputDir = await mkdtemp(join(tmpdir(), "favium-unsafe-output-"));
+      const sourceBuffer = await createImageBuffer("png");
+      const plan: CliGenerationPlan = {
+        baseName: "favicon",
+        outputDir,
+        fit: "cover",
+        background: "#fff",
+        overwrite: true,
+        icoSizes: [],
+        pngOutputs: [{ size: 16, filename }],
+        htmlSnippet: false,
+        manifest: false,
+        manifestFilename: "manifest.webmanifest",
+      };
+
+      await expect(
+        generateArtifacts(
+          {
+            kind: "custom-path",
+            label: "logo.png",
+            origin: "/tmp/logo.png",
+            buffer: sourceBuffer,
+            width: 16,
+            height: 16,
+            format: "png",
+            sizeBytes: sourceBuffer.byteLength,
+            suggestedBaseName: "logo",
+          },
+          plan,
+        ),
+      ).rejects.toThrow("Unsafe PNG filename");
+    },
+  );
+
+  it("rejects duplicate output filenames", async () => {
+    const sourceBuffer = await createImageBuffer("png");
+    const plan: CliGenerationPlan = {
+      baseName: "favicon",
+      outputDir: "/tmp",
+      fit: "cover",
+      background: "#fff",
+      overwrite: true,
+      icoSizes: [],
+      pngOutputs: [
+        { size: 16, filename: "same.png" },
+        { size: 32, filename: "SAME.png" },
+      ],
+      htmlSnippet: false,
+      manifest: false,
+      manifestFilename: "manifest.webmanifest",
+    };
+
+    await expect(
+      generateArtifacts(
+        {
+          kind: "custom-path",
+          label: "logo.png",
+          origin: "/tmp/logo.png",
+          buffer: sourceBuffer,
+          width: 16,
+          height: 16,
+          format: "png",
+          sizeBytes: sourceBuffer.byteLength,
+          suggestedBaseName: "logo",
+        },
+        plan,
+      ),
+    ).rejects.toThrow("Duplicate output filename");
+  });
+
+  it.each([
+    {
+      label: "HTML-injecting filename",
+      patch: { pngOutputs: [{ size: 16, filename: 'x"onload=.png' }] },
+      message: "Unsafe PNG filename",
+    },
+    {
+      label: "manifest traversal",
+      patch: { manifestFilename: "../manifest.webmanifest" },
+      message: "Manifest filename must not contain a path",
+    },
+    {
+      label: "invalid ICO size",
+      patch: { icoSizes: [257] },
+      message: "ICO size must be an integer between 1 and 256",
+    },
+    {
+      label: "duplicate ICO size",
+      patch: { icoSizes: [16, 16] },
+      message: "ICO sizes must not contain duplicates",
+    },
+    {
+      label: "unsafe base name",
+      patch: { baseName: "../favicon" },
+      message: "Base name contains unsafe characters",
+    },
+    {
+      label: "oversized output",
+      patch: { pngOutputs: [{ size: 1025, filename: "large.png" }] },
+      message: "Output size must be an integer between 1 and 1024",
+    },
+  ])("rejects $label", async ({ patch, message }) => {
+    const sourceBuffer = await createImageBuffer("png");
+    const plan: CliGenerationPlan = {
+      baseName: "favicon",
+      outputDir: "/tmp",
+      fit: "cover",
+      background: "#fff",
+      overwrite: true,
+      icoSizes: [],
+      pngOutputs: [],
+      htmlSnippet: false,
+      manifest: false,
+      manifestFilename: "manifest.webmanifest",
+      ...patch,
+    };
+
+    await expect(
+      generateArtifacts(
+        {
+          kind: "custom-path",
+          label: "logo.png",
+          origin: "/tmp/logo.png",
+          buffer: sourceBuffer,
+          width: 16,
+          height: 16,
+          format: "png",
+          sizeBytes: sourceBuffer.byteLength,
+          suggestedBaseName: "logo",
+        },
+        plan,
+      ),
+    ).rejects.toThrow(message);
   });
 });
 

@@ -1,4 +1,13 @@
-import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  stat,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { basename, dirname, extname, join, relative, resolve } from "node:path";
 
 import pngToIco from "png-to-ico";
@@ -59,6 +68,7 @@ export interface GeneratedArtifact {
 
 const DEFAULT_ICO_SIZES = [16, 32, 48];
 const DEFAULT_PNG_SIZES = [16, 32, 150, 180, 192, 512];
+export const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
 const SUPPORTED_IMAGE_EXTENSIONS = new Set([
   ".avif",
   ".gif",
@@ -123,6 +133,12 @@ export async function loadImageFromPath(
   filePath: string,
 ): Promise<LoadedImageSource> {
   const absolutePath = resolve(filePath);
+  const details = await stat(absolutePath);
+  if (details.size > MAX_SOURCE_BYTES) {
+    throw new RangeError(
+      `Image exceeds ${formatBytes(MAX_SOURCE_BYTES)} limit`,
+    );
+  }
   const buffer = await readFile(absolutePath);
   const metadata = await sharp(buffer, { animated: true }).metadata();
 
@@ -149,7 +165,7 @@ export async function loadImageFromPath(
 export async function loadImageFromUrl(
   url: string,
 ): Promise<LoadedImageSource> {
-  const response = await fetch(url);
+  const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
 
   if (!response.ok) {
     throw new Error(
@@ -164,7 +180,14 @@ export async function loadImageFromUrl(
     );
   }
 
-  const buffer = Buffer.from(await response.arrayBuffer());
+  const contentLength = Number(response.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_SOURCE_BYTES) {
+    throw new RangeError(
+      `Image exceeds ${formatBytes(MAX_SOURCE_BYTES)} limit`,
+    );
+  }
+
+  const buffer = await readLimitedResponse(response);
   const metadata = await sharp(buffer, { animated: true }).metadata();
 
   if (!metadata.width || !metadata.height) {
@@ -186,6 +209,37 @@ export async function loadImageFromUrl(
     sizeBytes: buffer.byteLength,
     suggestedBaseName: sanitizeBaseName(rawName),
   };
+}
+
+async function readLimitedResponse(response: Response): Promise<Buffer> {
+  if (!response.body) {
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.byteLength > MAX_SOURCE_BYTES) {
+      throw new RangeError(
+        `Image exceeds ${formatBytes(MAX_SOURCE_BYTES)} limit`,
+      );
+    }
+    return buffer;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_SOURCE_BYTES) {
+      await reader.cancel();
+      throw new RangeError(
+        `Image exceeds ${formatBytes(MAX_SOURCE_BYTES)} limit`,
+      );
+    }
+    chunks.push(value);
+  }
+
+  return Buffer.concat(chunks, totalBytes);
 }
 
 export function sanitizeBaseName(value: string): string {
@@ -369,6 +423,7 @@ export async function generateArtifacts(
   source: LoadedImageSource,
   plan: CliGenerationPlan,
 ): Promise<GeneratedArtifact[]> {
+  validateGenerationPlan(plan);
   await mkdir(plan.outputDir, { recursive: true });
   const artifacts: GeneratedArtifact[] = [];
   const pngCache = new Map<number, Buffer>();
@@ -421,6 +476,66 @@ export async function generateArtifacts(
   return artifacts;
 }
 
+function validateGenerationPlan(plan: CliGenerationPlan): void {
+  if (!/^[a-z0-9][a-z0-9._-]*$/i.test(plan.baseName)) {
+    throw new Error("Base name contains unsafe characters");
+  }
+  const filenames = new Set<string>();
+  const addFilename = (filename: string): void => {
+    const normalized = filename.toLowerCase();
+    if (filenames.has(normalized)) {
+      throw new Error(`Duplicate output filename: ${filename}`);
+    }
+    filenames.add(normalized);
+  };
+
+  if (
+    plan.icoSizes.some(
+      (size) => !Number.isInteger(size) || size <= 0 || size > 256,
+    )
+  ) {
+    throw new RangeError("ICO size must be an integer between 1 and 256");
+  }
+  if (new Set(plan.icoSizes).size !== plan.icoSizes.length) {
+    throw new Error("ICO sizes must not contain duplicates");
+  }
+
+  for (const output of plan.pngOutputs) {
+    validateOutput(output.filename, output.size, ".png");
+    addFilename(output.filename);
+  }
+  if (
+    basename(plan.manifestFilename) !== plan.manifestFilename ||
+    /[\\/]/.test(plan.manifestFilename) ||
+    !/^[a-z0-9][a-z0-9._-]*$/i.test(plan.manifestFilename)
+  ) {
+    throw new Error("Manifest filename must not contain a path");
+  }
+  if (plan.icoSizes.length > 0) addFilename(`${plan.baseName}.ico`);
+  if (plan.htmlSnippet) addFilename(`${plan.baseName}.html`);
+  if (plan.manifest) addFilename(plan.manifestFilename);
+}
+
+function validateOutput(
+  filename: string,
+  size: number,
+  extension: string,
+): void {
+  if (
+    basename(filename) !== filename ||
+    /[\\/]/.test(filename) ||
+    !/^[a-z0-9][a-z0-9._-]*$/i.test(filename) ||
+    !filename.toLowerCase().endsWith(extension)
+  ) {
+    throw new Error(
+      `Unsafe ${extension.slice(1).toUpperCase()} filename: ${filename}`,
+    );
+  }
+  if (!Number.isInteger(size) || size <= 0 || size > 1024) {
+    throw new RangeError("Output size must be an integer between 1 and 1024");
+  }
+}
+
 async function renderPng(
   input: Buffer,
   size: number,
@@ -443,25 +558,38 @@ async function writeFileSafely(
   overwrite: boolean,
   encoding?: BufferEncoding,
 ): Promise<void> {
-  if (!overwrite) {
-    try {
-      await stat(filePath);
-      throw new Error(`Refusing to overwrite existing file: ${filePath}`);
-    } catch (error) {
-      if (
-        !(error instanceof Error) ||
-        !("code" in error) ||
-        error.code !== "ENOENT"
-      ) {
-        throw error;
-      }
+  const writeContents = async (targetPath: string, flag: "w" | "wx") => {
+    if (typeof contents === "string") {
+      await writeFile(targetPath, contents, {
+        encoding: encoding ?? "utf8",
+        flag,
+      });
+      return;
     }
-  }
+    await writeFile(targetPath, contents, { flag });
+  };
 
-  if (typeof contents === "string") {
-    await writeFile(filePath, contents, encoding ?? "utf8");
+  if (overwrite) {
+    const temporaryPath = join(
+      dirname(filePath),
+      `.${basename(filePath)}.${randomUUID()}.tmp`,
+    );
+    try {
+      await writeContents(temporaryPath, "wx");
+      await rename(temporaryPath, filePath);
+    } catch (error) {
+      await unlink(temporaryPath).catch(() => undefined);
+      throw error;
+    }
     return;
   }
 
-  await writeFile(filePath, contents);
+  try {
+    await writeContents(filePath, "wx");
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "EEXIST") {
+      throw new Error(`Refusing to overwrite existing file: ${filePath}`);
+    }
+    throw error;
+  }
 }

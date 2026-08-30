@@ -106,9 +106,9 @@ class FakeCanvas {
     return type === "2d" ? this.context : null;
   }
 
-  public toDataURL(type = "image/png"): string {
+  public toDataURL(type = "image/png", quality?: number): string {
     const payload = Buffer.from(
-      JSON.stringify({ width: this.width, height: this.height, type }),
+      JSON.stringify({ width: this.width, height: this.height, type, quality }),
       "utf8",
     ).toString("base64");
 

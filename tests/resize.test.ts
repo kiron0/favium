@@ -27,4 +27,14 @@ describe("Resize", () => {
 
     expect(() => new Resize(canvas).resize(0, 32)).toThrow(RangeError);
   });
+
+  it.each([
+    [1.5, 32],
+    [32, Number.NaN],
+    [Number.POSITIVE_INFINITY, 32],
+  ])("rejects non-integer dimensions %s x %s", (width, height) => {
+    expect(() => new Resize(createCanvas()).resize(width, height)).toThrow(
+      "Width and height must be integers",
+    );
+  });
 });

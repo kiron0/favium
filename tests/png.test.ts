@@ -18,9 +18,12 @@ describe("PngGenerator", () => {
     });
   });
 
-  it("rejects invalid sizes", () => {
-    const canvas = createCanvas();
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    "rejects invalid size %s",
+    (size) => {
+      const canvas = createCanvas();
 
-    expect(() => new PngGenerator(canvas).generate(-1)).toThrow(RangeError);
-  });
+      expect(() => new PngGenerator(canvas).generate(size)).toThrow(RangeError);
+    },
+  );
 });

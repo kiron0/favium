@@ -30,22 +30,20 @@ import {
   type LoadedImageSource,
   type ManifestOptions,
 } from "./core";
-
-interface CliArgs {
-  help: boolean;
-  output?: string;
-  preset?: CliPreset;
-  recursive: boolean;
-  source?: string;
-  version: boolean;
-  yes: boolean;
-}
+import { parseCliArgs, type CliArgs } from "./args";
 
 let hasExitedGracefully = false;
 const packageVersion = getPackageVersion();
 
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2));
+  let args: CliArgs;
+  try {
+    args = parseCliArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : "Invalid arguments");
+    process.exitCode = 1;
+    return;
+  }
 
   if (args.help) {
     printHelp();
@@ -136,29 +134,6 @@ async function main(): Promise<void> {
     outro(error instanceof Error ? error.message : "Unknown error");
     process.exitCode = 1;
   }
-}
-
-function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = {
-    help: false,
-    recursive: false,
-    version: false,
-    yes: false,
-  };
-
-  for (let index = 0; index < argv.length; index++) {
-    const arg = argv[index];
-
-    if (arg === "--help" || arg === "-h") args.help = true;
-    if (arg === "--version" || arg === "-v") args.version = true;
-    if (arg === "--recursive") args.recursive = true;
-    if (arg === "--yes" || arg === "-y") args.yes = true;
-    if (arg === "--source") args.source = argv[++index];
-    if (arg === "--output") args.output = argv[++index];
-    if (arg === "--preset") args.preset = argv[++index] as CliPreset;
-  }
-
-  return args;
 }
 
 function getPackageVersion(): string {
