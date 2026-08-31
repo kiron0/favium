@@ -277,7 +277,7 @@ describe("cli-core", () => {
   it("loads external images from URLs", async () => {
     const imageBuffer = await createImageBuffer("png", 24);
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(imageBuffer, {
+      new Response(new Uint8Array(imageBuffer), {
         status: 200,
         headers: { "content-type": "image/png" },
       }),
