@@ -1,10 +1,11 @@
 import { createServer } from "node:http";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import { cwd } from "node:process";
 import { extname, join, normalize } from "node:path";
 
 const root = cwd();
-const contentTypes = {
+const contentTypes: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -13,7 +14,10 @@ const contentTypes = {
   ".svg": "image/svg+xml",
 };
 
-createServer(async (request, response) => {
+async function serve(
+  request: IncomingMessage,
+  response: ServerResponse,
+): Promise<void> {
   const requestPath =
     request.url === "/"
       ? "/playwright/fixtures/index.html"
@@ -34,4 +38,8 @@ createServer(async (request, response) => {
     response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
     response.end("Not found");
   }
+}
+
+createServer((request, response) => {
+  void serve(request, response);
 }).listen(4173, "127.0.0.1");

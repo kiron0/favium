@@ -10,6 +10,18 @@ import sharp from "sharp";
 const execFileAsync = promisify(execFile);
 const directory = await mkdtemp(join(tmpdir(), "favium-cli-e2e-"));
 
+function isExecError(
+  error: unknown,
+): error is Error & { code: number; stderr: string } {
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    typeof error.code === "number" &&
+    "stderr" in error &&
+    typeof error.stderr === "string"
+  );
+}
+
 try {
   const sourcePath = join(directory, "source.webp");
   const outputDir = join(directory, "output");
@@ -47,8 +59,14 @@ try {
 
   const ico = await readFile(join(outputDir, "source.ico"));
   assert.deepEqual([...ico.subarray(0, 6)], [0, 0, 1, 0, 3, 0]);
-  const manifest = JSON.parse(
+  const manifest: unknown = JSON.parse(
     await readFile(join(outputDir, "manifest.webmanifest"), "utf8"),
+  );
+  assert(
+    typeof manifest === "object" &&
+      manifest !== null &&
+      "icons" in manifest &&
+      Array.isArray(manifest.icons),
   );
   assert.equal(manifest.icons.length, 2);
 
@@ -60,7 +78,10 @@ try {
 
   await assert.rejects(
     execFileAsync(process.execPath, ["cli/dist/cli.js", "--unknown"]),
-    (error) => error.code === 1 && /Unknown option/.test(error.stderr),
+    (error: unknown) =>
+      isExecError(error) &&
+      error.code === 1 &&
+      error.stderr.includes("Unknown option"),
   );
 } finally {
   await rm(directory, { recursive: true, force: true });

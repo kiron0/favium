@@ -8,7 +8,8 @@ export default defineConfig({
     headless: true,
   },
   webServer: {
-    command: "node ./playwright/server.mjs",
+    command:
+      "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types ./playwright/server.ts",
     port: 4173,
     reuseExistingServer: true,
   },
