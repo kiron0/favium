@@ -7,7 +7,7 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join, resolve } from "node:path";
 
 import sharp from "sharp";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -44,7 +44,7 @@ describe("cli-core", () => {
 
     const files = await collectImagesFromDirectory(directory);
 
-    expect(files.map((filePath) => filePath.split("/").pop())).toEqual([
+    expect(files.map((filePath) => basename(filePath))).toEqual([
       "logo.png",
       "photo.jpg",
     ]);
@@ -60,12 +60,13 @@ describe("cli-core", () => {
     const shallowFiles = await collectImagesFromDirectory(directory, false);
     const recursiveFiles = await collectImagesFromDirectory(directory, true);
 
-    expect(shallowFiles.map((filePath) => filePath.split("/").pop())).toEqual([
+    expect(shallowFiles.map((filePath) => basename(filePath))).toEqual([
       "root.png",
     ]);
-    expect(recursiveFiles.map((filePath) => filePath.split("/").pop())).toEqual(
-      ["deep.webp", "root.png"],
-    );
+    expect(recursiveFiles.map((filePath) => basename(filePath))).toEqual([
+      "deep.webp",
+      "root.png",
+    ]);
   });
 
   it("parses, deduplicates, and sorts size input", () => {
@@ -167,20 +168,23 @@ describe("cli-core", () => {
   });
 
   it("suggests a same-name output directory beside the source file", () => {
+    const sourceDirectory = join(tmpdir(), "brand");
     const source: LoadedImageSource = {
       kind: "custom-path",
       label: "logo.png",
-      origin: "/tmp/brand/logo.png",
+      origin: join(sourceDirectory, "logo.png"),
       buffer: Buffer.alloc(0),
       width: 256,
       height: 256,
       format: "png",
       sizeBytes: 0,
       suggestedBaseName: "logo",
-      directory: "/tmp/brand",
+      directory: sourceDirectory,
     };
 
-    expect(getSuggestedOutputDirectory(source)).toBe("/tmp/brand/logo");
+    expect(getSuggestedOutputDirectory(source)).toBe(
+      resolve(sourceDirectory, "logo"),
+    );
   });
 
   it("formats byte sizes and plan summaries for interactive review", () => {
