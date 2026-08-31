@@ -26,6 +26,7 @@ Notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Prevented partial CLI output through staged writes and rollback
 - Accepted canvas instances created in another browser realm
 - Rejected non-finite, oversized, and unsafe canvas dimensions
+- Capped implicit text-icon pixel ratios to preserve 512px legacy canvases at extreme browser zoom
 - Used first frame only for animated image inputs
 
 ### Security

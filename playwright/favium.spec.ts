@@ -71,6 +71,95 @@ test("generates browser-valid PNGs and configurable bundles", async ({
   expect(result.bundle512).toEqual({ width: 512, height: 512 });
 });
 
+test("preserves the Favique legacy browser contract", async ({ page }) => {
+  const result = await page.evaluate(() => {
+    const { FaviconComposer, TextIconGenerator } = window.favium as {
+      FaviconComposer: new (canvas: HTMLCanvasElement) => {
+        bundle: () => {
+          ico: string;
+          pngs: Record<number, string>;
+          png16: string;
+          png32: string;
+          png150: string;
+          png180: string;
+          png192: string;
+          png512: string;
+        };
+      };
+      TextIconGenerator: new (canvas: HTMLCanvasElement) => {
+        generate: (options: {
+          text: string;
+          width: number;
+          height: number;
+          fontFamily: string;
+          fontStyle: string;
+          fontColor: string;
+          backgroundColor: string;
+          fontSize: number;
+          fontWeight: string;
+          cornerRadius: number;
+        }) => HTMLCanvasElement;
+      };
+    };
+
+    const source = document.createElement("canvas");
+    source.width = 512;
+    source.height = 512;
+    const sourceContext = source.getContext("2d");
+    if (!sourceContext) throw new Error("2D context unavailable");
+    sourceContext.fillStyle = "#209cee";
+    sourceContext.fillRect(0, 0, 512, 512);
+
+    const bundle = new FaviconComposer(source).bundle();
+    const legacySizes = [16, 32, 150, 180, 192, 512] as const;
+    const namedPngs = [
+      [16, bundle.png16],
+      [32, bundle.png32],
+      [150, bundle.png150],
+      [180, bundle.png180],
+      [192, bundle.png192],
+      [512, bundle.png512],
+    ] as const;
+
+    Object.defineProperty(window, "devicePixelRatio", {
+      configurable: true,
+      value: 10,
+    });
+    const textSource = document.createElement("canvas");
+    const generatedText = new TextIconGenerator(textSource).generate({
+      text: "F",
+      width: 512,
+      height: 512,
+      fontFamily: "sans-serif",
+      fontStyle: "normal",
+      fontColor: "#ffffff",
+      backgroundColor: "#209cee",
+      fontSize: 440,
+      fontWeight: "400",
+      cornerRadius: 60,
+    });
+
+    return {
+      icoValid: bundle.ico.startsWith("data:image/x-icon;base64,"),
+      mapEntriesPresent: legacySizes.every((size) =>
+        bundle.pngs[size]?.startsWith("data:image/png;base64,"),
+      ),
+      namedFieldsMatchMap: namedPngs.every(
+        ([size, png]) => png === bundle.pngs[size],
+      ),
+      textChainPrefix: generatedText.toDataURL().slice(0, 22),
+      textWidth: generatedText.width,
+      expectedTextWidth: 4096,
+    };
+  });
+
+  expect(result.icoValid).toBe(true);
+  expect(result.mapEntriesPresent).toBe(true);
+  expect(result.namedFieldsMatchMap).toBe(true);
+  expect(result.textChainPrefix).toBe("data:image/png;base64,");
+  expect(result.textWidth).toBe(result.expectedTextWidth);
+});
+
 test("encodes 256x256 ICO entries as PNG and honors text icon pixel ratio", async ({
   page,
 }) => {

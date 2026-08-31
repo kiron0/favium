@@ -60,6 +60,6 @@ export interface TextIconGeneratorOptions {
   cornerRadius?: number;
   /** Background color (CSS color value, default: "black") */
   backgroundColor?: string;
-  /** Device pixel ratio override for canvas backing resolution (default: window.devicePixelRatio or 1) */
+  /** Device pixel ratio override for canvas backing resolution (default: window.devicePixelRatio or 1, capped to the maximum canvas size) */
   pixelRatio?: number;
 }

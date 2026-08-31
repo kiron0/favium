@@ -197,6 +197,22 @@ describe("TextIconGenerator", () => {
     setDevicePixelRatio(1);
   });
 
+  it("caps the implicit pixel ratio to preserve large legacy canvases", () => {
+    setDevicePixelRatio(10);
+
+    const generated = TextIconGenerator.generate({
+      text: "F",
+      width: 512,
+      height: 512,
+    });
+
+    expect(generated.width).toBe(4096);
+    expect(generated.height).toBe(4096);
+    expect(getCanvasOperations(generated)).toContain("setTransform:8x8");
+
+    setDevicePixelRatio(1);
+  });
+
   it("allows overriding the pixel ratio explicitly", () => {
     setDevicePixelRatio(3);
 

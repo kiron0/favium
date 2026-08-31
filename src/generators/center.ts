@@ -73,8 +73,16 @@ export class TextIconGenerator {
       throw new Error("Pixel ratio must be a positive number");
     }
 
-    const physicalWidth = Math.round(width * pixelRatio);
-    const physicalHeight = Math.round(height * pixelRatio);
+    const effectivePixelRatio =
+      options.pixelRatio === undefined
+        ? Math.min(
+            pixelRatio,
+            MAX_CANVAS_DIMENSION / width,
+            MAX_CANVAS_DIMENSION / height,
+          )
+        : pixelRatio;
+    const physicalWidth = Math.round(width * effectivePixelRatio);
+    const physicalHeight = Math.round(height * effectivePixelRatio);
     try {
       assertCanvasDimensions(physicalWidth, physicalHeight);
     } catch {
@@ -88,7 +96,7 @@ export class TextIconGenerator {
     this.canvas.height = physicalHeight;
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
-    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    ctx.setTransform(effectivePixelRatio, 0, 0, effectivePixelRatio, 0, 0);
 
     // Draw background with flexible corner radius
     this.drawBackground(ctx, width, height, cornerRadius, backgroundColor);

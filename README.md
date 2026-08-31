@@ -207,7 +207,7 @@ const iconCanvas = TextIconGenerator.generate({
 });
 ```
 
-If `pixelRatio` is omitted, Favium uses `window.devicePixelRatio` when available and falls back to `1`.
+If `pixelRatio` is omitted, Favium uses `window.devicePixelRatio` when available and falls back to `1`. Implicit ratios are capped when needed to keep the physical canvas within `4096x4096`; an explicitly oversized ratio throws.
 
 ## Notes
 
