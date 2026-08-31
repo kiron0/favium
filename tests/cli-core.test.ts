@@ -1,4 +1,11 @@
-import { mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -245,6 +252,16 @@ describe("cli-core", () => {
     expect(source.width).toBe(16);
   });
 
+  it("uses first-frame dimensions for animated WebP sources", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "favium-animated-source-"));
+    const filePath = join(directory, "animated.webp");
+    await writeFile(filePath, await createAnimatedWebpBuffer());
+
+    const source = await loadImageFromPath(filePath);
+
+    expect(source).toMatchObject({ format: "webp", width: 4, height: 4 });
+  });
+
   it("rejects oversized local inputs before reading", async () => {
     const directory = await mkdtemp(join(tmpdir(), "favium-large-source-"));
     const filePath = join(directory, "large.png");
@@ -410,6 +427,45 @@ describe("cli-core", () => {
     ).toMatchObject({ format: "png", width: 32, height: 32 });
   });
 
+  it("converts only first animated WebP frame", async () => {
+    const outputDir = await mkdtemp(join(tmpdir(), "favium-first-frame-"));
+    const sourceBuffer = await createAnimatedWebpBuffer();
+    const plan: CliGenerationPlan = {
+      baseName: "animated",
+      outputDir,
+      fit: "cover",
+      background: "#fff",
+      overwrite: true,
+      icoSizes: [],
+      pngOutputs: [{ size: 8, filename: "first.png" }],
+      htmlSnippet: false,
+      manifest: false,
+      manifestFilename: "manifest.webmanifest",
+    };
+
+    await generateArtifacts(
+      {
+        kind: "custom-path",
+        label: "animated.webp",
+        origin: "/tmp/animated.webp",
+        buffer: sourceBuffer,
+        width: 4,
+        height: 4,
+        format: "webp",
+        sizeBytes: sourceBuffer.byteLength,
+        suggestedBaseName: "animated",
+      },
+      plan,
+    );
+
+    const { data, info } = await sharp(join(outputDir, "first.png"))
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    expect(info).toMatchObject({ width: 8, height: 8 });
+    expect(data[0]).toBeGreaterThan(240);
+    expect(data[2]).toBeLessThan(15);
+  });
+
   it("refuses to overwrite existing files when overwrite is disabled", async () => {
     const outputDir = await mkdtemp(join(tmpdir(), "favium-overwrite-"));
     const sourceBuffer = await createImageBuffer("png", 64);
@@ -443,6 +499,82 @@ describe("cli-core", () => {
     await expect(generateArtifacts(source, plan)).rejects.toThrow(
       `Refusing to overwrite existing file: ${join(outputDir, "favicon-32x32.png")}`,
     );
+  });
+
+  it("does not write partial output when any target already exists", async () => {
+    const outputDir = await mkdtemp(join(tmpdir(), "favium-transaction-"));
+    const existingPath = join(outputDir, "second.png");
+    const firstPath = join(outputDir, "first.png");
+    await writeFile(existingPath, "existing");
+    const sourceBuffer = await createImageBuffer("png", 32);
+
+    await expect(
+      generateArtifacts(
+        {
+          kind: "custom-path",
+          label: "logo.png",
+          origin: "/tmp/logo.png",
+          buffer: sourceBuffer,
+          width: 32,
+          height: 32,
+          format: "png",
+          sizeBytes: sourceBuffer.byteLength,
+          suggestedBaseName: "logo",
+        },
+        {
+          baseName: "favicon",
+          outputDir,
+          fit: "cover",
+          background: "#fff",
+          overwrite: false,
+          icoSizes: [],
+          pngOutputs: [
+            { size: 16, filename: "first.png" },
+            { size: 32, filename: "second.png" },
+          ],
+          htmlSnippet: false,
+          manifest: false,
+          manifestFilename: "manifest.webmanifest",
+        },
+      ),
+    ).rejects.toThrow("Refusing to overwrite existing file");
+    await expect(readFile(firstPath)).rejects.toMatchObject({ code: "ENOENT" });
+    expect(await readFile(existingPath, "utf8")).toBe("existing");
+  });
+
+  it("leaves output empty when generation fails", async () => {
+    const outputDir = await mkdtemp(
+      join(tmpdir(), "favium-failed-transaction-"),
+    );
+
+    await expect(
+      generateArtifacts(
+        {
+          kind: "custom-path",
+          label: "broken.webp",
+          origin: "/tmp/broken.webp",
+          buffer: Buffer.from("not an image"),
+          width: 16,
+          height: 16,
+          format: "webp",
+          sizeBytes: 12,
+          suggestedBaseName: "broken",
+        },
+        {
+          baseName: "broken",
+          outputDir,
+          fit: "cover",
+          background: "#fff",
+          overwrite: true,
+          icoSizes: [16],
+          pngOutputs: [{ size: 16, filename: "first.png" }],
+          htmlSnippet: true,
+          manifest: false,
+          manifestFilename: "manifest.webmanifest",
+        },
+      ),
+    ).rejects.toThrow();
+    expect(await readdir(outputDir)).toEqual([]);
   });
 
   it("replaces output symlinks without modifying their targets", async () => {
@@ -662,4 +794,19 @@ async function createNestedImage(
 ): Promise<void> {
   await mkdir(directory, { recursive: true });
   await createImage(join(directory, filename), "webp");
+}
+
+async function createAnimatedWebpBuffer(): Promise<Buffer> {
+  const pixels = Buffer.alloc(4 * 8 * 4);
+  for (let index = 0; index < pixels.length; index += 4) {
+    const firstFrame = index < 4 * 4 * 4;
+    pixels[index] = firstFrame ? 255 : 0;
+    pixels[index + 2] = firstFrame ? 0 : 255;
+    pixels[index + 3] = 255;
+  }
+  return sharp(pixels, {
+    raw: { width: 4, height: 8, channels: 4, pageHeight: 4 },
+  })
+    .webp({ delay: [100, 100], loop: 0 })
+    .toBuffer();
 }

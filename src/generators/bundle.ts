@@ -5,6 +5,7 @@ import {
   ImageBundleOptions,
 } from "../types";
 import PngGenerator from "./png";
+import { assertCanvas } from "../utils/canvas";
 
 const DEFAULT_ICO_SIZES = [16, 32, 48];
 const DEFAULT_PNG_SIZES = [16, 32, 150, 180, 192, 512];
@@ -21,9 +22,7 @@ class Bundle {
   private readonly canvas: HTMLCanvasElement;
 
   constructor(canvas: HTMLCanvasElement) {
-    if (!(canvas instanceof HTMLCanvasElement)) {
-      throw new TypeError("Parameter must be an HTMLCanvasElement");
-    }
+    assertCanvas(canvas);
     this.canvas = canvas;
   }
 

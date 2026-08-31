@@ -5,6 +5,8 @@ import {
   FaviconComposer,
   IcoGenerator,
   ImageBundleGenerator,
+  MAX_CANVAS_DIMENSION,
+  MAX_CANVAS_PIXELS,
   PngGenerator,
   TextIconGenerator,
 } from "../src";
@@ -18,6 +20,14 @@ describe("public API", () => {
     expect(PngGenerator).toBeTypeOf("function");
     expect(CanvasResize).toBeTypeOf("function");
     expect(TextIconGenerator).toBeTypeOf("function");
+    expect(MAX_CANVAS_DIMENSION).toBe(4096);
+    expect(MAX_CANVAS_PIXELS).toBe(4096 * 4096);
+  });
+
+  it("rejects excessive source canvas dimensions", () => {
+    expect(() => new FaviconComposer(createCanvas(4097, 1))).toThrow(
+      "must not exceed 4096x4096",
+    );
   });
 
   it("rejects non-canvas input across constructors", () => {

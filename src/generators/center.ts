@@ -1,12 +1,15 @@
 import { TextIconGeneratorOptions } from "../types";
+import {
+  assertCanvas,
+  assertCanvasDimensions,
+  MAX_CANVAS_DIMENSION,
+} from "../utils/canvas";
 
 export class TextIconGenerator {
   private readonly canvas: HTMLCanvasElement;
 
   constructor(canvas: HTMLCanvasElement) {
-    if (!(canvas instanceof HTMLCanvasElement)) {
-      throw new TypeError("Parameter must be an HTMLCanvasElement");
-    }
+    assertCanvas(canvas);
     this.canvas = canvas;
   }
 
@@ -54,13 +57,13 @@ export class TextIconGenerator {
     };
 
     // Input validation
-    if (typeof width !== "number" || width <= 0)
+    if (!Number.isFinite(width) || width <= 0)
       throw new Error("Width must be a positive number");
-    if (typeof height !== "number" || height <= 0)
+    if (!Number.isFinite(height) || height <= 0)
       throw new Error("Height must be a positive number");
-    if (typeof fontSize !== "number" || fontSize <= 0)
+    if (!Number.isFinite(fontSize) || fontSize <= 0)
       throw new Error("Font size must be a positive number");
-    if (typeof cornerRadius !== "number" || cornerRadius < 0)
+    if (!Number.isFinite(cornerRadius) || cornerRadius < 0)
       throw new Error("Corner radius must be a non-negative number");
     if (
       typeof pixelRatio !== "number" ||
@@ -70,9 +73,19 @@ export class TextIconGenerator {
       throw new Error("Pixel ratio must be a positive number");
     }
 
+    const physicalWidth = Math.round(width * pixelRatio);
+    const physicalHeight = Math.round(height * pixelRatio);
+    try {
+      assertCanvasDimensions(physicalWidth, physicalHeight);
+    } catch {
+      throw new RangeError(
+        `Rendered canvas must not exceed ${MAX_CANVAS_DIMENSION}x${MAX_CANVAS_DIMENSION}`,
+      );
+    }
+
     // Set canvas size for high-DPI displays
-    this.canvas.width = Math.round(width * pixelRatio);
-    this.canvas.height = Math.round(height * pixelRatio);
+    this.canvas.width = physicalWidth;
+    this.canvas.height = physicalHeight;
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
     ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);

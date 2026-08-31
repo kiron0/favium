@@ -1,12 +1,15 @@
 import {
+  copyFile,
+  lstat,
   mkdir,
   readdir,
   readFile,
   rename,
+  rm,
   stat,
-  unlink,
   writeFile,
 } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { basename, dirname, extname, join, relative, resolve } from "node:path";
 
@@ -152,7 +155,7 @@ export async function loadImageFromPath(
     origin: absolutePath,
     buffer,
     width: metadata.width,
-    height: metadata.height,
+    height: metadata.pageHeight ?? metadata.height,
     format: metadata.format,
     sizeBytes: buffer.byteLength,
     suggestedBaseName: sanitizeBaseName(
@@ -204,7 +207,7 @@ export async function loadImageFromUrl(
     origin: url,
     buffer,
     width: metadata.width,
-    height: metadata.height,
+    height: metadata.pageHeight ?? metadata.height,
     format: metadata.format,
     sizeBytes: buffer.byteLength,
     suggestedBaseName: sanitizeBaseName(rawName),
@@ -425,55 +428,55 @@ export async function generateArtifacts(
 ): Promise<GeneratedArtifact[]> {
   validateGenerationPlan(plan);
   await mkdir(plan.outputDir, { recursive: true });
-  const artifacts: GeneratedArtifact[] = [];
-  const pngCache = new Map<number, Buffer>();
+  const pending: {
+    artifact: GeneratedArtifact;
+    contents: Buffer | string;
+  }[] = [];
+  const pngCache = new Map<number, Promise<Buffer>>();
+  const getPng = (size: number): Promise<Buffer> => {
+    const cached = pngCache.get(size);
+    if (cached) return cached;
+    const rendered = renderPng(source.buffer, size, plan.fit, plan.background);
+    pngCache.set(size, rendered);
+    return rendered;
+  };
 
   for (const output of plan.pngOutputs) {
-    const pngBuffer =
-      pngCache.get(output.size) ??
-      (await renderPng(source.buffer, output.size, plan.fit, plan.background));
-    pngCache.set(output.size, pngBuffer);
-
     const outputPath = join(plan.outputDir, output.filename);
-    await writeFileSafely(outputPath, pngBuffer, plan.overwrite);
-    artifacts.push({ type: "png", filePath: outputPath });
+    pending.push({
+      artifact: { type: "png", filePath: outputPath },
+      contents: await getPng(output.size),
+    });
   }
 
   if (plan.icoSizes.length > 0) {
-    const icoImages = await Promise.all(
-      plan.icoSizes.map((size) =>
-        renderPng(source.buffer, size, plan.fit, plan.background),
-      ),
-    );
+    const icoImages = await Promise.all(plan.icoSizes.map(getPng));
     const icoBuffer = await pngToIco(icoImages);
     const icoPath = join(plan.outputDir, `${plan.baseName}.ico`);
-    await writeFileSafely(icoPath, icoBuffer, plan.overwrite);
-    artifacts.push({ type: "ico", filePath: icoPath });
+    pending.push({
+      artifact: { type: "ico", filePath: icoPath },
+      contents: icoBuffer,
+    });
   }
 
   if (plan.htmlSnippet) {
     const htmlPath = join(plan.outputDir, `${plan.baseName}.html`);
-    await writeFileSafely(
-      htmlPath,
-      renderHtmlSnippet(plan),
-      plan.overwrite,
-      "utf8",
-    );
-    artifacts.push({ type: "html", filePath: htmlPath });
+    pending.push({
+      artifact: { type: "html", filePath: htmlPath },
+      contents: renderHtmlSnippet(plan),
+    });
   }
 
   if (plan.manifest) {
     const manifestPath = join(plan.outputDir, plan.manifestFilename);
-    await writeFileSafely(
-      manifestPath,
-      renderManifest(plan),
-      plan.overwrite,
-      "utf8",
-    );
-    artifacts.push({ type: "manifest", filePath: manifestPath });
+    pending.push({
+      artifact: { type: "manifest", filePath: manifestPath },
+      contents: renderManifest(plan),
+    });
   }
 
-  return artifacts;
+  await commitArtifacts(pending, plan.outputDir, plan.overwrite);
+  return pending.map(({ artifact }) => artifact);
 }
 
 function validateGenerationPlan(plan: CliGenerationPlan): void {
@@ -542,7 +545,7 @@ async function renderPng(
   fit: FitMode,
   background: string,
 ): Promise<Buffer> {
-  return sharp(input, { animated: true })
+  return sharp(input, { animated: false, page: 0, pages: 1 })
     .rotate()
     .resize(size, size, {
       fit,
@@ -552,44 +555,94 @@ async function renderPng(
     .toBuffer();
 }
 
-async function writeFileSafely(
-  filePath: string,
-  contents: string | Buffer,
+async function commitArtifacts(
+  pending: {
+    artifact: GeneratedArtifact;
+    contents: Buffer | string;
+  }[],
+  outputDir: string,
   overwrite: boolean,
-  encoding?: BufferEncoding,
 ): Promise<void> {
-  const writeContents = async (targetPath: string, flag: "w" | "wx") => {
-    if (typeof contents === "string") {
-      await writeFile(targetPath, contents, {
-        encoding: encoding ?? "utf8",
-        flag,
-      });
-      return;
+  if (!overwrite) {
+    for (const { artifact } of pending) {
+      try {
+        await lstat(artifact.filePath);
+        throw new Error(
+          `Refusing to overwrite existing file: ${artifact.filePath}`,
+        );
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          error.code === "ENOENT"
+        ) {
+          continue;
+        }
+        throw error;
+      }
     }
-    await writeFile(targetPath, contents, { flag });
-  };
-
-  if (overwrite) {
-    const temporaryPath = join(
-      dirname(filePath),
-      `.${basename(filePath)}.${randomUUID()}.tmp`,
-    );
-    try {
-      await writeContents(temporaryPath, "wx");
-      await rename(temporaryPath, filePath);
-    } catch (error) {
-      await unlink(temporaryPath).catch(() => undefined);
-      throw error;
-    }
-    return;
   }
 
+  const transactionDir = join(outputDir, `.favium-${randomUUID()}`);
+  const stagedDir = join(transactionDir, "staged");
+  const backupDir = join(transactionDir, "backup");
+  const committed: string[] = [];
+  const backups: { backupPath: string; filePath: string }[] = [];
+
   try {
-    await writeContents(filePath, "wx");
+    await mkdir(stagedDir, { recursive: true });
+    await mkdir(backupDir);
+
+    for (const { artifact, contents } of pending) {
+      const stagedPath = join(stagedDir, basename(artifact.filePath));
+      await writeFile(stagedPath, contents, { flag: "wx" });
+    }
+
+    for (const { artifact } of pending) {
+      const filePath = artifact.filePath;
+      const filename = basename(filePath);
+      const stagedPath = join(stagedDir, filename);
+
+      if (overwrite) {
+        try {
+          await lstat(filePath);
+          const backupPath = join(backupDir, filename);
+          await rename(filePath, backupPath);
+          backups.push({ backupPath, filePath });
+        } catch (error) {
+          if (
+            !(error instanceof Error) ||
+            !("code" in error) ||
+            error.code !== "ENOENT"
+          ) {
+            throw error;
+          }
+        }
+        await rename(stagedPath, filePath);
+      } else {
+        await copyFile(stagedPath, filePath, fsConstants.COPYFILE_EXCL);
+      }
+      committed.push(filePath);
+    }
   } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "EEXIST") {
-      throw new Error(`Refusing to overwrite existing file: ${filePath}`);
+    for (const filePath of committed.reverse()) {
+      await rm(filePath, { force: true, recursive: true }).catch(
+        () => undefined,
+      );
+    }
+    for (const { backupPath, filePath } of backups.reverse()) {
+      await rename(backupPath, filePath).catch(() => undefined);
+    }
+    if (
+      !overwrite &&
+      error instanceof Error &&
+      "code" in error &&
+      error.code === "EEXIST"
+    ) {
+      throw new Error("Output changed during generation; transaction aborted");
     }
     throw error;
+  } finally {
+    await rm(transactionDir, { recursive: true, force: true });
   }
 }

@@ -1,6 +1,6 @@
 # Favium
 
-Favium generates favicon assets from an `HTMLCanvasElement` in the browser and from image files in the terminal.
+Favium generates favicon assets from an `HTMLCanvasElement` in the browser. Its separately installable CLI converts image files into favicon bundles.
 
 ## Features
 
@@ -17,12 +17,18 @@ Favium generates favicon assets from an `HTMLCanvasElement` in the browser and f
 npm install favium
 ```
 
-## CLI
-
-Favium ships with an interactive terminal workflow:
+Browser package has zero runtime dependencies. CLI/native image dependencies live in `favium-cli`:
 
 ```bash
-npx favium
+npm install --global favium-cli
+```
+
+## CLI
+
+`favium-cli` provides interactive terminal workflow:
+
+```bash
+npx favium-cli
 ```
 
 The CLI can:
@@ -87,8 +93,10 @@ Preset summary:
 
 ## Requirements
 
+- Node.js 22+ for CLI
 - Browser or browser-like runtime with `document`, `HTMLCanvasElement`, and `CanvasRenderingContext2D`
 - Canvas content must be origin-clean if you want `getImageData()` and `toDataURL()` to succeed
+- Canvas inputs and generated browser outputs are limited to `4096x4096` pixels
 
 ## Quick Start
 

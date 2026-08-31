@@ -16,6 +16,15 @@ function readEntry(bytes: Uint8Array, index: number) {
 }
 
 describe("IcoGenerator", () => {
+  it("matches golden ICO bytes", () => {
+    const ico = new IcoGenerator(createCanvas(32, 32)).generate([16, 32, 256]);
+    const hash = createHash("sha256").update(decodeIco(ico)).digest("hex");
+
+    expect(hash).toBe(
+      "bb8ee35ee8f7808339968a6b6831c08bc010cdac5490fcf2d969114adf75e831",
+    );
+  });
+
   it("encodes valid directory entries and bitmap sizes", () => {
     const canvas = createCanvas(32, 32);
 
@@ -72,3 +81,4 @@ describe("IcoGenerator", () => {
     expect(readEntry(bytes, 2).width).toBe(48);
   });
 });
+import { createHash } from "node:crypto";

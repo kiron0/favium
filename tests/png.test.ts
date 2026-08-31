@@ -26,4 +26,10 @@ describe("PngGenerator", () => {
       expect(() => new PngGenerator(canvas).generate(size)).toThrow(RangeError);
     },
   );
+
+  it("rejects excessive output size", () => {
+    expect(() => new PngGenerator(createCanvas()).generate(4097)).toThrow(
+      "must not exceed 4096x4096",
+    );
+  });
 });

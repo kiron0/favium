@@ -10,3 +10,4 @@ export type {
 } from "./types";
 export { default as PngGenerator } from "./generators/png";
 export { default as CanvasResize } from "./utils/resize";
+export { MAX_CANVAS_DIMENSION, MAX_CANVAS_PIXELS } from "./utils/canvas";

@@ -117,6 +117,13 @@ describe("TextIconGenerator", () => {
     [{ cornerRadius: -1 }, "Corner radius must be a non-negative number"],
     [{ pixelRatio: 0 }, "Pixel ratio must be a positive number"],
     [{ pixelRatio: Number.NaN }, "Pixel ratio must be a positive number"],
+    [{ width: Number.POSITIVE_INFINITY }, "Width must be a positive number"],
+    [{ fontSize: Number.NaN }, "Font size must be a positive number"],
+    [
+      { cornerRadius: Number.NaN },
+      "Corner radius must be a non-negative number",
+    ],
+    [{ width: 4096, pixelRatio: 2 }, "Rendered canvas must not exceed"],
   ])("rejects invalid options %#", (options, message) => {
     expect(() =>
       new TextIconGenerator(createCanvas()).generate(options),

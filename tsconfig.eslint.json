@@ -4,6 +4,7 @@
     "src/**/*.ts",
     "tests/**/*.ts",
     "playwright/**/*.ts",
+    "cli/**/*.ts",
     "*.config.ts"
   ]
 }

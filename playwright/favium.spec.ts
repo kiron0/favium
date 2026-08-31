@@ -135,3 +135,27 @@ test("encodes 256x256 ICO entries as PNG and honors text icon pixel ratio", asyn
   expect(result.styleWidth).toBe("64px");
   expect(result.styleHeight).toBe("64px");
 });
+
+test("accepts canvas elements created in another window realm", async ({
+  page,
+}) => {
+  const result = await page.evaluate(() => {
+    const { FaviconComposer } = window.favium as {
+      FaviconComposer: new (canvas: HTMLCanvasElement) => {
+        png: (size: number) => string;
+      };
+    };
+    const iframe = document.createElement("iframe");
+    document.body.append(iframe);
+    const foreignDocument = iframe.contentDocument;
+    if (!foreignDocument) throw new Error("iframe document unavailable");
+    const canvas = foreignDocument.createElement("canvas");
+    canvas.width = 32;
+    canvas.height = 32;
+    const png = new FaviconComposer(canvas).png(16);
+    iframe.remove();
+    return png.slice(0, 22);
+  });
+
+  expect(result).toBe("data:image/png;base64,");
+});

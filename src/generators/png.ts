@@ -1,12 +1,11 @@
 import Resize from "../utils/resize";
+import { assertCanvas, assertCanvasDimensions } from "../utils/canvas";
 
 class Png {
   private readonly canvas: HTMLCanvasElement;
 
   constructor(canvas: HTMLCanvasElement) {
-    if (!(canvas instanceof HTMLCanvasElement)) {
-      throw new TypeError("Parameter must be an HTMLCanvasElement");
-    }
+    assertCanvas(canvas);
     this.canvas = canvas;
   }
 
@@ -16,9 +15,7 @@ class Png {
    * @returns Data URL of PNG image
    */
   public generate(size: number): string {
-    if (!Number.isInteger(size) || size <= 0) {
-      throw new RangeError("Size must be a positive integer");
-    }
+    assertCanvasDimensions(size, size);
 
     const resizedCanvas = new Resize(this.canvas).resize(size, size);
     return resizedCanvas.toDataURL("image/png");

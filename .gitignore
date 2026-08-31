@@ -1,14 +1,10 @@
 /dist
-/node_modules
-playwright-report
-test-results
-coverage
+/cli/dist
+node_modules/
+/playwright-report/
+/test-results/
+/coverage/
+*.tgz
 
 .env
 .DS_Store
-
-package-lock.json
-yarn.lock
-bun.lockb
-pnpm-lock.yaml
-bun.lock

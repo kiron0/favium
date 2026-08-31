@@ -1,4 +1,5 @@
 import Resize from "../utils/resize";
+import { assertCanvas } from "../utils/canvas";
 
 /**
  * Generates ICO files from a canvas element, supporting multiple sizes.
@@ -12,9 +13,7 @@ class Ico {
    * @throws {TypeError} If the parameter is not an HTMLCanvasElement.
    */
   constructor(canvas: HTMLCanvasElement) {
-    if (!(canvas instanceof HTMLCanvasElement)) {
-      throw new TypeError("Parameter must be an HTMLCanvasElement");
-    }
+    assertCanvas(canvas);
     this.canvas = canvas;
   }
 

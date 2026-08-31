@@ -34,7 +34,13 @@ describe("Resize", () => {
     [Number.POSITIVE_INFINITY, 32],
   ])("rejects non-integer dimensions %s x %s", (width, height) => {
     expect(() => new Resize(createCanvas()).resize(width, height)).toThrow(
-      "Width and height must be integers",
+      "Width and height must be finite integers",
+    );
+  });
+
+  it("rejects excessive dimensions", () => {
+    expect(() => new Resize(createCanvas()).resize(4097, 1)).toThrow(
+      "must not exceed 4096x4096",
     );
   });
 });

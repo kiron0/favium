@@ -7,14 +7,13 @@ import {
 } from "../types";
 import Png from "../generators/png";
 import Resize from "../utils/resize";
+import { assertCanvas } from "../utils/canvas";
 
 class FaviconComposer {
   private readonly canvas: HTMLCanvasElement;
 
   constructor(canvas: HTMLCanvasElement) {
-    if (!(canvas instanceof HTMLCanvasElement)) {
-      throw new TypeError("Parameter must be an HTMLCanvasElement");
-    }
+    assertCanvas(canvas);
     this.canvas = canvas;
   }
 

@@ -1,3 +1,5 @@
+import { assertCanvas, assertCanvasDimensions } from "./canvas";
+
 class Resize {
   private canvas: HTMLCanvasElement;
   /**
@@ -6,9 +8,7 @@ class Resize {
    * @throws {TypeError} If the parameter is not an HTMLCanvasElement.
    */
   constructor(canvas: HTMLCanvasElement) {
-    if (!(canvas instanceof HTMLCanvasElement)) {
-      throw new TypeError("Parameter must be an HTMLCanvasElement");
-    }
+    assertCanvas(canvas);
     this.canvas = canvas;
   }
 
@@ -20,12 +20,7 @@ class Resize {
    * @throws {RangeError} If width or height is not a positive integer.
    */
   public resize(width: number, height: number): HTMLCanvasElement {
-    if (!Number.isInteger(width) || !Number.isInteger(height)) {
-      throw new RangeError("Width and height must be integers");
-    }
-    if (width <= 0 || height <= 0) {
-      throw new RangeError("Width and height must be positive");
-    }
+    assertCanvasDimensions(width, height);
 
     while (this.canvas.width / 2 >= width && this.canvas.height / 2 >= height) {
       this._resize(
